@@ -2,7 +2,7 @@
   "name": "rote-skills",
   "owner": {
     "name": "Modiqo",
-    "email": "hello@modiqo.ai"
+    "email": "social@modiqo.ai"
   },
   "metadata": {
     "description": "Distributable Claude Code skills for rote — adapter workflow orchestration."
