@@ -1,0 +1,10 @@
+{
+  "name": "rote-setup",
+  "version": "1.0.0",
+  "description": "Guided, interactive first-run setup for rote.",
+  "author": {
+    "name": "Modiqo"
+  },
+  "homepage": "https://getrote.dev",
+  "license": "MIT"
+}

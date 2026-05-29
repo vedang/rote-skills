@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+
+# Global ~/.gitignore excludes `.claude*`; this repo's manifests live in
+# `.claude-plugin/` and MUST be tracked, so un-ignore them here.
+!.claude-plugin/
+!.claude-plugin/**
+!**/.claude-plugin/
+!**/.claude-plugin/**
