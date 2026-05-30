@@ -1,11 +1,13 @@
 ---
 name: rote-setup
 description: >
-  Guided, interactive first-run setup for rote. Walks a user from zero to a working rote
-  install — detects whether they already have an account, signs them in (Google/GitHub),
-  or branches to request-an-invite / claim-an-invite-code, then offers a menu of the
-  remaining onboarding steps (install adapters à la carte, credentials, OAuth, install
-  skill, explore). Use when the user says "set up rote", "rote setup", "onboard me to rote",
+  Guided, interactive first-run setup for rote. Installs the binary, then forks: stop at
+  just the CLI, pull curated powerpack adapters (needs sign-in), or build adapters from the
+  872-API built-in catalog (no login). Signs the user in via Google/GitHub when needed (or
+  branches to request-an-invite / claim-an-invite-code), then offers a menu of remaining
+  onboarding steps (adapters, credentials, OAuth, install skill, explore) and ends by
+  running one live flow to prove value. Use when the user says "set up rote", "rote setup",
+  "onboard me to rote",
   "get rote working", "install and configure rote", "/rote-setup", or is a first-timer
   who needs hand-holding through `rote join` / `rote login` / installing adapters.
   This skill drives the human through choices with AskUserQuestion at each branch —
@@ -35,7 +37,9 @@ Before anything else, confirm the binary exists:
 command -v rote
 ```
 
-- **Prints a path** (e.g. `/Users/.../.local/bin/rote`) → installed. Continue to **Step 0**.
+- **Prints a path** (e.g. `/Users/.../.local/bin/rote`) → installed. Go to **Step -0.5
+  (the fork)** — even an already-installed binary should be offered the stop / powerpack /
+  catalog choice.
 - **Empty / exit code 1** → not installed. Offer the install choice via AskUserQuestion,
   header `Install`:
 
@@ -106,7 +110,7 @@ one-liner** instead (or installing an editor first). Don't offer an editor that 
 
 After install, the extension's setup wizard provisions the CLI on first launch — tell the
 user to reload/open the editor, then re-verify the binary with `command -v rote` before
-continuing to Step 0.
+continuing to **Step -0.5 (the fork)**.
 
   After the CLI one-liner finishes, the binary may not be on the current shell's PATH yet
   (the installer typically drops it in `~/.local/bin`). Re-verify before continuing:
@@ -117,22 +121,91 @@ continuing to Step 0.
 
   If still not found, check `~/.local/bin/rote` directly and tell the user to open a new
   terminal / `source` their shell profile (or add `~/.local/bin` to PATH). Do not proceed
-  to Step 0 until `command -v rote` resolves.
+  to the fork (Step -0.5) until `command -v rote` resolves.
 
 ---
 
-## Step 0 — Detect current state (always run first, silently)
+## Step -0.5 — How far do you want to go? (fork, right after install)
+
+The binary is now installed. Before any login, ask how far the user wants to take setup —
+some people just want the CLI, others want adapters. AskUserQuestion, header `Scope`:
+
+- **Just the CLI — stop here** — confirm rote is installed, print `rote how` for next steps,
+  and **end the wizard cleanly**. No login, no adapters. The user can re-run `/rote-setup`
+  anytime to go further.
+- **Pull the powerpack** (curated starter adapters) — github, gmail, calendar, linear from
+  the registry. **Requires sign-in** (registry pull is authenticated) → go to **Step 0**
+  (login), then the powerpack picker in **Step 3a**.
+- **Build from the API catalog** (search 872 built-in API specs) — pick any API (notion,
+  stripe, datadog, …) and create an adapter from its spec. **No rote login needed** — the
+  catalog is embedded in the binary. Go to **Step -0.6 (catalog flow)**.
+
+Why the fork is here (before login): the catalog and stop branches don't need a rote
+account, so don't force a login on someone who just wants the CLI or wants to build a single
+adapter. Only the powerpack branch gates on sign-in.
+
+If the user is *already* signed in (Step 0 would show `ok: <email>`), still offer this fork
+but note they're signed in, so all three branches are available without a login step.
+
+### Step -0.6 — Build an adapter from the API catalog (no login)
+
+The catalog is a binary-embedded set of ~872 validated API specs. Search → inspect → create.
+None of these need a rote login.
+
+1. **Ask what API they want** (prose — free text): "Which API? (e.g. notion, stripe,
+   datadog, or a keyword like 'email')". Then search:
+   ```bash
+   rote adapter catalog search "notion"
+   ```
+   This lists matches as `ID · Category · Provider`. If zero matches, suggest
+   `rote adapter catalog list` (browse categories) or a broader keyword.
+
+2. **Show details for the picked entry** so the user sees auth type, token page, and notes
+   (some entries carry install hints, e.g. DCR for Notion):
+   ```bash
+   rote adapter catalog info notion-mcp
+   ```
+   Surface the `Auth`, `Token Page`, and `Notes` lines — they tell the user what credential
+   they'll need and how it's obtained.
+
+3. **Confirm, then create.** On the user's go-ahead, create the adapter from the catalog
+   spec non-interactively:
+   ```bash
+   rote adapter new notion-mcp --yes
+   ```
+   `rote adapter new <id>` resolves the spec from the catalog. Note: creation fetches the
+   provider's spec — a provider-side `HTTP 401` means the API needs auth to even read its
+   spec (rare); most catalog entries create cleanly and surface their token env var after.
+   For MCP-type entries the `info` Notes may point at `rote adapter new-from-mcp <id> <url>`
+   instead — follow whichever the catalog entry recommends.
+
+4. **Loop or move on.** Offer to add another (`search` again) or proceed to credentials
+   (Step 3c) for the adapter(s) just created, then the install-skill step and the value
+   closer (Step 5). The catalog path can run entirely without login; only suggest sign-in
+   if the user later wants powerpack flows or registry features.
+
+After the catalog branch, jump to **Step 3c** (credentials) for the new adapters, skipping
+the powerpack/login steps the user opted out of.
+
+---
+
+## Step 0 — Detect login state (when login is needed)
+
+Reach this step when the user chose **Powerpack** in the fork (Step -0.5), or any time a
+branch needs registry auth. Detect login state silently:
 
 ```bash
 rote whoami
 ```
 
 Read the output:
-- `ok: <email>` → **already logged in.** Skip straight to **Step 3 (post-login menu)**.
-  Open with: "You're already signed in as `<email>`." Then present the menu.
+- `ok: <email>` → **already logged in.** Skip the login steps; go to **Step 3 (post-login
+  menu)** (or straight to **Step 3a** if they came here specifically for powerpack). Open
+  with: "You're already signed in as `<email>`."
 - Anything else (error, `not logged in`, empty) → **not logged in.** Go to **Step 1**.
 
-Do not assume — branch on the actual output of `rote whoami`.
+Do not assume — branch on the actual output of `rote whoami`. The **Catalog** and **Stop**
+branches of the fork never reach this step (they need no login).
 
 ---
 
@@ -207,7 +280,8 @@ header `Setup`, so they can queue several:
 
 | Option | What it does | Command |
 |---|---|---|
-| **Install adapters** (recommended) | Pick from the live registry, à la carte. **See 3a.** | `rote registry adapter pull bootstrap/<name> --yes` |
+| **Pull powerpack adapters** (recommended) | Curated registry adapters, à la carte. **See 3a.** | `rote registry adapter pull bootstrap/<name> --yes` |
+| **Build from API catalog** | Search 872 built-in API specs, create adapters. **See -0.6.** | `rote adapter catalog search …` → `rote adapter new <id> --yes` |
 | **Set up credentials** | Token wizard for installed adapters. **Secrets — see 3c.** | `rote powerpack credentials` (run in user's own terminal) |
 | **Connect Google (OAuth)** | Browser OAuth for Google adapters (gmail/calendar). **Non-interactive — see 3d.** | `rote oauth setup google --scopes <list>` |
 | **Install the agent skill** | Lets your coding agent (Claude/Cursor/Codex) use rote. | `rote install skill` |
