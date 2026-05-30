@@ -262,6 +262,10 @@ Show it's ready (tools/toolsets/auth). Offer to:
   cd ~/.rote/rote/workspaces/proof && rote <id>_probe "<query>"
   ```
 - **Tune it** — invoke **rote-adapter-config** for base-url, auth schemes, sensitivity, etc.
+- **Share it** — this is the schelling point for the registry. Hand off to **rote-registry**
+  with the new adapter id: it checks whether the adapter already exists in the user's orgs,
+  tells them if a push is needed, pushes at their chosen visibility, then surfaces org members
+  and offers to invite others for review/use. Only offer this on a clean create.
 
 **Closing line** (only on a clean create + green probe): land one dry one-liner keyed to this
 run's `total_tools` — the shared convention and rules live in [INDEX.md](../../INDEX.md).
@@ -283,7 +287,8 @@ you per call." Skip it if the run was rocky.
 ## Related onboard skills
 
 Part of the **rote-onboard** sequence ([INDEX.md](../../INDEX.md) is the full map):
-- **Next:** `/rote-onboard:rote-adapter-config` — tune the adapter you just made (auth, base
-  URL, write guard, sensitivity).
+- **Next (tune):** `/rote-onboard:rote-adapter-config` — auth, base URL, write guard,
+  sensitivity.
+- **Next (share):** `/rote-onboard:rote-registry` — check/push to your orgs, then invite others.
 - **First-run / setup:** `/rote-onboard:rote-setup` · **Keep current:**
   `/rote-onboard:rote-update`

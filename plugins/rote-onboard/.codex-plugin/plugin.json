@@ -1,7 +1,7 @@
 {
   "name": "rote-onboard",
-  "version": "0.1.0",
-  "description": "rote skills — first-run setup, adapter create (dry-run-first), adapter config, and update.",
+  "version": "0.2.0",
+  "description": "rote skills — first-run setup, adapter create (dry-run-first), adapter config, registry (share + usage), and update.",
   "author": {
     "name": "Modiqo",
     "url": "https://getrote.dev"
@@ -9,12 +9,12 @@
   "homepage": "https://getrote.dev",
   "repository": "https://github.com/modiqo/rote-skills",
   "license": "MIT",
-  "keywords": ["rote", "onboarding", "setup", "adapters", "mcp", "catalog"],
+  "keywords": ["rote", "onboarding", "setup", "adapters", "mcp", "catalog", "registry"],
   "skills": "./skills/",
   "interface": {
     "displayName": "rote Skills",
-    "shortDescription": "Setup, adapter creation (dry-run-first), adapter configuration, and updates for rote.",
-    "longDescription": "A suite of conversational skills for rote. rote-setup: install → identity-gated sign-in → fork (stop / powerpack / build an adapter). rote-adapter-create: dry-run-first adapter creation from the 872-spec catalog, a web-found spec, or a local file — analyzes the spec without committing, then pre-fills auth and toolset choices from the analysis. rote-adapter-config: tune an existing adapter (auth, base-url, write guard, sensitivity, capability index, re-auth, GraphQL field filter, policies, subagent). rote-update: update the binary and the skills together. Every branch is a clear choice — nothing runs silently.",
+    "shortDescription": "Setup, adapter creation (dry-run-first), configuration, registry sharing, and updates for rote.",
+    "longDescription": "A suite of conversational skills for rote. rote-setup: install → identity-gated sign-in → fork (stop / powerpack / build an adapter). rote-adapter-create: dry-run-first adapter creation from the 872-spec catalog, a web-found spec, or a local file — analyzes the spec without committing, then pre-fills auth and toolset choices from the analysis. rote-adapter-config: tune an existing adapter (auth, base-url, write guard, sensitivity, capability index, re-auth, GraphQL field filter, policies, subagent). rote-registry: at the moment an adapter is minted or a flow crystallized, check whether it already exists in your orgs, push at a chosen visibility, then surface members and offer invites — plus show usage/quota across all your orgs. rote-update: update the binary and the skills together. Every branch is a clear choice — nothing runs silently.",
     "developerName": "Modiqo",
     "category": "Productivity",
     "capabilities": ["Interactive", "Read", "Write"],
