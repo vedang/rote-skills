@@ -39,14 +39,19 @@ command -v rote
 - **Empty / exit code 1** → not installed. Offer the install choice via AskUserQuestion,
   header `Install`:
 
-  - **CLI one-liner** (recommended) — installs the `rote` command directly:
+  - **CLI one-liner** (recommended) — installs the `rote` command directly. **Always run
+    it non-interactively** — the installer prompts ("Install Deno runtime? [Y/n]") and a
+    plain `curl … | bash` has no TTY in an agent shell, so it dies on `/dev/tty: Device not
+    configured`. Set `ROTE_YES=1` (the installer's documented non-interactive switch) and
+    invoke via `bash -c` so the env var is in scope:
     ```bash
-    curl -fsSL https://getrote.dev/install | bash
+    ROTE_YES=1 bash -c "$(curl -fsSL https://getrote.dev/install)"
     ```
-    This is a piped command — the user mandates no chaining, but this is the canonical
-    vendor installer and runs as a single logical step, so it's the one allowed exception.
-    Tell the user exactly what it does (downloads + runs the rote install script) and get
-    explicit confirmation before running it, since piping curl to bash executes remote code.
+    This is the one allowed piped/compound command — the canonical vendor installer as a
+    single logical step. Tell the user exactly what it does (downloads + runs the rote
+    install script, auto-accepting the runtime prompts) and get explicit confirmation
+    before running it, since it executes remote code. Other useful env vars: `ROTE_RESET=1`
+    (re-run all steps from scratch), `ROTE_FULL=1` (also install the browser runtime).
   - **Editor extension** — installs the rote extension into a VS Code-family editor
     (bundles the CLI + panels). Go to **Step -1a (detect editors)** to pick which one.
   - **I'll install it myself** — pause and tell the user to install, then re-run `/rote-setup`.
@@ -202,9 +207,9 @@ header `Setup`, so they can queue several:
 
 | Option | What it does | Command |
 |---|---|---|
-| **Pull powerpack** (recommended) | Curated starter adapters (github, gmail, calendar, linear, notion). | `rote pull powerpack` (interactive) — or with a preset, see 3a |
-| **Set up credentials** | Interactive token wizard for installed adapters. | `rote powerpack credentials` |
-| **Connect Google (OAuth)** | Browser OAuth for Google adapters (gmail/calendar). | `rote oauth setup google` |
+| **Pull powerpack** (recommended) | Curated starter adapters (github, gmail, calendar, linear, notion). | `rote pull powerpack --with-flows --yes` — preset via 3a |
+| **Set up credentials** | Token wizard for installed adapters. **Secrets — see 3c.** | `rote powerpack credentials` (run in user's own terminal) |
+| **Connect Google (OAuth)** | Browser OAuth for Google adapters (gmail/calendar). **Non-interactive — see 3d.** | `rote oauth setup google --scopes <list>` |
 | **Install the agent skill** | Lets your coding agent (Claude/Cursor/Codex) use rote. | `rote install skill` |
 | **Explore / learn** | Onboarding tree + human-friendly help. | `rote how`, then `rote human` |
 
@@ -216,14 +221,22 @@ only what they pick, one at a time, confirming after each.
 If they pick "Pull powerpack", first offer a preset (AskUserQuestion, header `Powerpack`):
 
 - **Default** (recommended) — github, gmail, calendar, linear, notion (5 adapters):
-  `rote pull powerpack --with-flows`
-- **Dev** — dev-focused adapters: `rote pull powerpack --preset dev --with-flows`
-- **Google** — google-only: `rote pull powerpack --preset google --with-flows`
-- **AI** — gemini-api: `rote pull powerpack --preset ai --with-flows`
-- **All** — everything: `rote pull powerpack --all --with-flows`
+  `rote pull powerpack --with-flows --yes`
+- **Dev** — dev-focused adapters: `rote pull powerpack --preset dev --with-flows --yes`
+- **Google** — google-only: `rote pull powerpack --preset google --with-flows --yes`
+- **AI** — gemini-api: `rote pull powerpack --preset ai --with-flows --yes`
+- **All** — everything: `rote pull powerpack --all --with-flows --yes`
 
-Include `--with-flows` so they get crystallized flows too. Add `--yes` only if the user
-asks to skip the interactive picker; otherwise let powerpack prompt for adapter selection.
+Always pass **`--yes`** — the adapter picker is interactive and dies on `/dev/tty` in an
+agent shell (same failure class as the installer). `--with-flows` includes crystallized
+flows. After it runs, **report the install summary verbatim** — partial success is normal:
+
+- **`notion` fails** with `Adapter not found: bootstrap/notion`. This is a known
+  powerpack-preset id bug — the preset can't resolve Notion. The other four (github,
+  gmail, calendar, linear) install fine. **Don't treat the run as failed.** Notion needs
+  the dedicated DCR path — see **Step 3e**, and offer it as a follow-up.
+- Note which adapters need credentials (the summary prints `GITHUB_TOKEN`,
+  `GSUITE_TOKEN`, `LINEAR_API_TOKEN`) and carry that into the credentials step.
 
 ### Step 3b — Install skill provider
 
@@ -236,6 +249,80 @@ rote install skill --provider claude
 
 (Use `--provider all` for "All".) `--force` overwrites an existing SKILL.md without
 prompting — only add it if the user confirms an overwrite.
+
+### Step 3c — Credentials (secrets — never echo)
+
+`rote token set <name> <value>` takes the token as a **clear-text CLI argument** — the
+secret lands in the shell history *and* this session's transcript. The current CLI has no
+stdin/file input mode for it. So:
+
+- **Default to the interactive wizard, run in the user's OWN terminal.** Tell the user to
+  run, in their terminal (not via the agent):
+  ```
+  rote powerpack credentials
+  ```
+  It prompts per-adapter and **masks** input — secrets never pass through the agent. This
+  is the recommended path. Then they return and you re-verify (see verify below).
+- **`rote token set` is an explicit opt-in only.** Offer it via AskUserQuestion only if the
+  user *insists* on setting a single token through the agent, and state plainly: "the token
+  will be visible in this session's transcript; rotate it afterward if it's long-lived."
+  Only on explicit go-ahead:
+  ```bash
+  rote token set LINEAR_API_TOKEN "<value>"
+  ```
+- **Never print, echo, or re-quote a token back** to the user once set. Don't `cat` the
+  secrets dir.
+
+**Verify with cwd-independent checks only.** Do NOT run a flow or `rote ready` to test a
+token — those require being *inside a rote workspace* and otherwise fail with
+`not in a workspace directory` / `Permission denied (os error 13)` (that error from a
+scratch dir like `/tmp` is the workspace requirement, not a bad token). Verify with:
+
+```bash
+rote powerpack tokens
+```
+
+(or `rote token get <name>` for one) — both work from any directory and show
+configured/not-configured without exercising the API.
+
+### Step 3d — Google OAuth (non-interactive)
+
+The bare `rote oauth setup google` opens an interactive multi-select ("Which Google APIs
+do you need?") that has no TTY in an agent shell. Drive it non-interactively by
+**pre-selecting scopes with `--scopes`** (this is exactly what the rote-vscode extension
+does):
+
+```bash
+rote oauth setup google --scopes gmail.readonly,calendar.calendarlist.readonly,calendar.calendars.readonly,calendar.events.readonly,calendar.events.freebusy,drive.file
+```
+
+That's the standard discovery scope set (Gmail read, Calendar read + free/busy, Drive
+app-files). If the user only wants a subset, offer a scope choice via AskUserQuestion
+(Gmail-only `gmail.readonly`; Calendar-only the four `calendar.*`; add `drive.file` for
+Drive) and pass just those — comma-separated, no spaces. This still opens a **browser** for
+the Google consent screen; tell the user to complete it there. The token is stored as
+`GSUITE_TOKEN`; confirm with `rote powerpack tokens` afterward.
+
+### Step 3e — Notion (OAuth DCR — install then reauth)
+
+Notion MCP uses **OAuth Dynamic Client Registration (DCR)**, not a static token, so it
+takes two commands and the powerpack preset can't do it (the preset's `bootstrap/notion`
+lookup fails). Run it as a dedicated follow-up:
+
+1. **Install the adapter** (the working path — adapter id is `notion`):
+   ```bash
+   rote registry adapter pull bootstrap/notion --yes
+   ```
+2. **Authorize via DCR** — first run registers a DCR client (RFC 7591) and opens a PKCE
+   browser flow:
+   ```bash
+   rote adapter reauth notion
+   ```
+   Tell the user to complete the Notion authorization in the browser. If a later reauth
+   fails because the provider pruned the registered client (rare), re-run with
+   `rote adapter reauth notion --force-reregister`.
+
+Confirm with `rote adapter list` (notion should appear ready) and `rote powerpack tokens`.
 
 ---
 
@@ -256,9 +343,20 @@ onboarding tree. Offer to crystallize a first flow or run `rote flow search "<in
 ## Behavior notes
 
 - **One command per Bash call.** No `&&`, `|`, or `;` chains. The user wants each
-  success/failure visible on its own. The single exception is the canonical vendor
-  installer `curl -fsSL https://getrote.dev/install | bash`, which is one logical step —
-  and only after explicit user confirmation, since it pipes remote code into bash.
+  success/failure visible on its own. The one allowed compound is the vendor installer
+  `ROTE_YES=1 bash -c "$(curl -fsSL https://getrote.dev/install)"` — a single logical step,
+  run only after explicit confirmation since it executes remote code.
+- **Everything must run non-interactively** — the agent shell has no TTY, so any command
+  that prompts dies on `/dev/tty: Device not configured`. Use the documented switch for
+  each: installer → `ROTE_YES=1`; powerpack picker → `--yes`; Google OAuth → `--scopes …`.
+  The one prompt you must NOT automate away is credential entry — see secrets below.
+- **Never handle secrets in the agent.** Default credential setup to the interactive
+  `rote powerpack credentials` wizard in the *user's own* terminal (masked input).
+  `rote token set <name> <value>` puts the token in the transcript — offer it only as an
+  explicit, warned opt-in, and never echo a token back or read the secrets dir.
+- **Verify without a workspace.** To check a credential, use `rote powerpack tokens` /
+  `rote token get` — never a flow or `rote ready`, which need a workspace cwd and fail with
+  `not in a workspace directory` / `Permission denied (os error 13)` from a scratch dir.
 - **Detect before offering.** Confirm the rote binary (`command -v rote`) before any rote
   command, and detect installed editors (`command -v code|cursor|antigravity`) before
   offering the extension path. Never present an install target that isn't there.
