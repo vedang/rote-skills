@@ -24,6 +24,15 @@ Use **AskUserQuestion** for every branch below. Run **one command per Bash call*
 mandates no chained/piped commands). After each step, give a one-line "what just happened"
 and surface the next choice.
 
+**Follow the shared operating rules in [`../../INDEX.md`](../../INDEX.md) § "Shared operating
+rules"** — permissions, strict step-wise (never parallel), required-state gates, and flow
+execution. They apply to every step here.
+
+**First, clear the permission prompts (issue: every step prompts on a fresh machine).** Before
+the first `rote` command, offer to allowlist `Bash(rote:*)`, `Bash(cd:*)`, and
+`Bash(rote deno run:*)` in `~/.claude/settings.json` (the `update-config` skill can do it).
+Otherwise the user confirms a Bash prompt on every single step.
+
 All commands are non-destructive to the filesystem; they touch `~/.rote/` config and the
 registry.
 
@@ -347,6 +356,21 @@ that into Step 3c. Then reindex once at the end if needed (`rote adapter list` t
 ready state). Adapters that need an API token will surface their env var name; Google
 adapters (gmail/calendar) use OAuth via Step 3d, not a static token.
 
+**Credential gate — do NOT proceed past an unset required token** (real bug: an adapter was
+installed from a preset/bootstrap, its token was never set, and the wizard marched on to the
+next step / tried to run a flow against it anyway). After installing adapters, **verify** which
+required tokens are actually configured before relying on any of them:
+
+```bash
+rote powerpack tokens
+```
+
+For each installed adapter whose token shows **✗ not configured**, do **not** treat it as
+usable — route the user to **Step 3c (credentials)** to wire it (or to **Step 3d** for Google
+OAuth) *before* the value-proof flow in Step 5. A flow run against an adapter with an unset
+credential will fail; don't attempt it. If the user declines to set a token now, that adapter
+is simply skipped for the live-flow proof — pick a flow whose adapter IS credentialed instead.
+
 **Pull each adapter's flows right after installing it.** The adapter pull installs only the
 adapter — its curated flows are separate, and the value-proof closer (Step 5) needs at
 least one flow present. For each adapter just installed, find and pull its flows:
@@ -487,61 +511,56 @@ not just "complete." Only offer this if at least one credential is wired (a flow
 working credential will just error). Ask first (AskUserQuestion, header `Try it`): "Want me
 to run a quick flow to see it work?" — yes / skip.
 
-**1. Find adapter-matched flows.** Use the adapters they installed (and credentialed) so the
-flow can actually run. For each, list its flows:
+**Follow [`../../INDEX.md`](../../INDEX.md) § "Running a flow"** — the canonical method. The
+short version, applied here:
+
+**1. Find a flow for a credentialed adapter.** Use `rote explore "<intent>"` to discover what
+can handle the intent, and/or list adapter-matched flows:
 
 ```bash
 rote registry flow find-by-adapter github
 ```
 
-Prefer flows for an adapter whose credential is configured (check `rote powerpack tokens` /
-the Google OAuth result). A read-only flow is the safest first run (e.g.
-`list-top-committers`, `retrieve-recent-emails`, `check-calendar-meetings`) — avoid
-write/create flows (`create-github-issue`) for the value-proof.
+**Only pick a flow whose adapter's credential is actually configured** (you verified this with
+`rote powerpack tokens` in the credential gate). A read-only flow is the safest first run
+(`list-top-committers`, `retrieve-recent-emails`, `check-calendar-meetings`) — avoid
+write/create flows for the proof.
 
-**2. Let the user pick one** (AskUserQuestion, header `Flow`), built from the matched list.
+**2. Let the user pick one** (AskUserQuestion, header `Flow`).
 
-**3. Ensure it's pulled.** If not already local from Step 3a, pull it (`--yes` required):
+**3. Ensure it's pulled.** If not already local, pull it (`--yes` required):
 
 ```bash
 rote registry flow pull modiqo/list-top-committers --yes
 ```
 
-**4. Read its parameters from frontmatter — don't guess.** Each flow declares params in a
-YAML `parameters:` block in its `main.ts` (name + description + required). Read them:
+**4. Read the frontmatter — for BOTH the params AND the execution mode.** Read
+`~/.rote/flows/<org>/<name>/main.ts`. It tells you two things:
+- the `parameters:` block — name + description per param (ask the user for each, using the
+  description as the hint; offer a sensible default like `modiqo/rote`);
+- whether there's a `steps:` block — this decides **how** you run it (next).
 
-```bash
-rote flow run list-top-committers --help
-```
+**5. Run it the right way (this is the fix for the "ran via bash, not Deno" bug).**
 
-(or read the `parameters:` block in `~/.rote/flows/<org>/<name>/main.ts`). For **each**
-declared param, ask the user for a value — use the param's `description` as the hint. Ask in
-prose (AskUserQuestion is for fixed choices; param values are free text), e.g. "This flow
-needs `repository` (Repository in format 'owner/repo') — what should I use?" Offer a sensible
-default where obvious (e.g. `modiqo/rote`).
+- **Frontmatter has `steps:` (DAG flow)** → `rote flow run` works, inside a workspace:
+  ```bash
+  rote init proof --seq --force
+  ```
+  ```bash
+  cd ~/.rote/rote/workspaces/proof && rote flow run <name> key=value …
+  ```
+- **No `steps:` (legacy/sequential flow — most curated flows)** → do **NOT** use
+  `rote flow run` (it can fall back to a plain bash invocation instead of Deno). Run it via
+  the bundled Deno from the flow's own directory:
+  ```bash
+  cd ~/.rote/flows/<org>/<name> && rote deno run --allow-all main.ts [args…]
+  ```
+  Pass the flow's positional args (from the `parameters:` block), e.g.
+  `… main.ts modiqo/rote`. `rote deno run` uses `~/.rote/bin/deno`. The `cd && rote deno run`
+  compound is one logical step (covered by the `Bash(cd:*)` / `Bash(rote deno run:*)` allowlist).
 
-**5. Preview, then run — inside a workspace.** `flow run` needs a workspace cwd. Create one
-and run **in the same Bash call** (see "Running a workspace-scoped command" in Behavior
-notes — `eval $(rote cd …)` / `--enter` won't carry across the agent's separate Bash calls).
-Params are `key=value` pairs; do a `--dry-run` first to preview without making calls:
-
-```bash
-rote init proof --seq --force
-```
-```bash
-cd ~/.rote/rote/workspaces/proof && rote flow run list-top-committers repository=modiqo/rote --dry-run
-```
-
-Then run it for real:
-
-```bash
-cd ~/.rote/rote/workspaces/proof && rote flow run list-top-committers repository=modiqo/rote
-```
-
-If it still fails with `not in a workspace directory` / `Permission denied (os error 13)`,
-the `cd` didn't take — make sure the workspace path is right (`~/.rote/rote/workspaces/<name>`)
-and that the `cd` and `rote` share one Bash call. That error is the cwd requirement, **not** a
-bad credential or flow.
+When unsure which mode, prefer the `cd … && rote deno run --allow-all main.ts` form — it works
+for every flow and matches how they're authored.
 
 Show the flow's output to the user — that's the payoff. Then suggest the main **rote** skill
 for day-to-day use (`rote flow search "<intent>"` before any direct adapter call).

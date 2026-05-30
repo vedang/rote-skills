@@ -19,10 +19,14 @@ does it: **check before you push** (don't burn quota re-pushing something alread
 at the visibility the user chooses, then **turn the push into collaboration** by surfacing org
 members and offering invites.
 
+**Follow the shared operating rules in [`../../INDEX.md`](../../INDEX.md) § "Shared operating
+rules"** — on a fresh run, offer the permission allowlist (`Bash(rote:*)` / `Bash(cd:*)` /
+`Bash(rote deno run:*)`) so the user isn't prompted on every step.
+
 Core rules:
 - **Determine facts from live `rote registry` commands, never from memory.** (If the rote
   binary isn't on PATH, resolve its absolute path — same as the setup skill.)
-- **One command per Bash call.** Probes gate decisions — run them sequentially.
+- **One command per Bash call, strictly sequential — never parallel.** Probes gate decisions.
 - **Auth-gate first.** Every registry op needs a valid session — see Stage 0.
 - **Existence is checked by fingerprint/version, not just name** — re-pushing an identical
   artifact wastes a quota slot. See Stage 2.

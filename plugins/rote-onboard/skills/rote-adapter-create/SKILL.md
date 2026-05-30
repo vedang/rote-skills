@@ -18,13 +18,19 @@ Build an adapter for any API the way the rote-vscode wizard does: **analyze the 
 side effects, then drive the choices from what the analysis found.** You hold the dry-run JSON
 in context and ask the user only the questions the analysis can't answer.
 
+**Follow the shared operating rules in [`../../INDEX.md`](../../INDEX.md) § "Shared operating
+rules"** — permissions allowlist, strict step-wise (never parallel), and required-state gates.
+On a fresh run, first offer to allowlist `Bash(rote:*)` / `Bash(cd:*)` / `Bash(rote deno run:*)`
+so the user isn't prompted on every step.
+
 Core rules:
 - **Never `--yes` create from a discovered spec without a successful `--dry-run` first.** The
   dry-run is the validation gate at every discovery branch.
 - **Determine facts from live commands, never from memory.** (If the rote binary isn't on
   PATH, resolve its absolute path — same as the setup skill.)
-- One command per Bash call. Secrets (API tokens) are never captured in chat — hand off to the
-  masked wizard (see Stage 5).
+- **One command per Bash call, strictly sequential — never parallel.** Each stage gates the
+  next (dry-run result drives auth/toolsets); firing steps in parallel breaks the pipeline.
+- Secrets (API tokens) are never captured in chat — hand off to the masked wizard (see Stage 5).
 
 ---
 
@@ -34,13 +40,23 @@ Ask what API the user wants (prose): "Which API? (e.g. notion, stripe, datadog �
 spec URL / file path)". Then resolve a **spec source** through this chain. The spec source is
 either a catalog id, a URL, or a local path.
 
-### 0a. Catalog (built-in, ~872 specs)
+### 0a. Catalog (built-in, ~872 specs) — ALWAYS try this first
 
 ```bash
 rote adapter catalog search "stripe"
 ```
 
-If there's a match, show details — the user sees auth type, spec URL, and notes:
+**Read the result count and act on it — do NOT skip to web search when the catalog has
+matches** (this is a real bug seen on a fresh run: 2 matches were found but not shown, and the
+skill jumped to web anyway):
+
+- **1+ matches** → **present every match to the user** (id · category · provider) via
+  AskUserQuestion (or prose if many) and let them **choose** — or confirm the single match.
+  Never silently pick one, and never fall through to web search while matches exist. Only after
+  the user picks (or explicitly says "none of these, search the web") do you leave the catalog.
+- **0 matches** → only then go to **0b (web search)**.
+
+Once the user picks a catalog entry, show its details (auth type, spec URL, notes):
 
 ```bash
 rote adapter catalog info stripe
@@ -58,9 +74,10 @@ rote adapter new <id> <SPEC_URL_FROM_CATALOG_INFO> --dry-run
 For MCP-type entries (catalog `info` Spec Type = "MCP", e.g. Notion), don't dry-run — go to
 the MCP path (Stage 5, MCP note).
 
-### 0b. Web search (not in catalog)
+### 0b. Web search (only when the catalog returned ZERO matches)
 
-If `catalog search` is empty, web-search for the API's **machine-readable spec** — an OpenAPI
+Reach this **only** if `rote adapter catalog search` returned no matches (or the user
+explicitly rejected all matches). Web-search for the API's **machine-readable spec** — an OpenAPI
 JSON/YAML URL or a GraphQL endpoint, **not** a human docs page. Propose the candidate URL to
 the user, then **validate it by dry-run** before trusting it (Stage 1). If the dry-run fails
 (404, HTML-not-a-spec, 403/401), say so plainly and try the next candidate or ask the user for

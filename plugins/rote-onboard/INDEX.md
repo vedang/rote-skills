@@ -29,6 +29,63 @@ map; each skill links back here.
 - **One entry point to remember:** `/rote-onboard:rote-setup` is the front door. From a clean
   machine it routes to everything else.
 
+## Shared operating rules (apply in EVERY skill)
+
+These are load-bearing — a skill that ignores them fumbles the run. Each SKILL.md references
+this section; keep them identical across skills.
+
+### 1. Permissions — clear the prompts up front
+
+Every `rote …` / `cd …` / `rote deno …` call goes through the agent's Bash tool, which prompts
+for permission unless allowlisted. On a fresh machine that means a prompt on *every step* —
+death by a thousand confirmations. **At the very start of any skill, before the first rote
+command, tell the user to allowlist these** (or do it via the `update-config` skill if
+available):
+
+- `Bash(rote:*)` — all rote commands
+- `Bash(cd:*)` — workspace/flow `cd <dir> && rote …` compounds
+- `Bash(rote deno run:*)` — flow execution via the bundled Deno (`~/.rote/bin/deno`)
+
+These live in `~/.claude/settings.json` under `permissions.allow`. Offer to add them once;
+don't re-ask. (Codex: the equivalent is its approved-commands / `prefix_rule` config.)
+
+### 2. Step-wise, NEVER parallel
+
+Run **one command per Bash call, strictly in sequence** — never batch independent probes into a
+single parallel tool block, and never fire the next step before the current one's result is in.
+Each step's output gates the next (an empty `whoami`, a 401 on a dry-run, an unset token all
+change what comes next). Parallel probing skips that gating and the run fumbles — the exact bug
+seen on a fresh machine. If you catch yourself about to send two Bash calls at once: don't.
+
+### 3. Required-state gates block the next step
+
+When a step establishes a precondition the next step needs — a token set, a login succeeded, a
+dry-run passed — **verify it actually happened before proceeding.** Do not advance on an
+adapter whose required credential is unset, a login that still reports "not logged in", or a
+create whose dry-run errored. Re-read the real output; if the precondition isn't met, stop and
+resolve it (or ask the user) rather than marching to the next step on a broken foundation.
+
+### 4. Running a flow — explore, read frontmatter, run the right way
+
+There are two execution modes and you must pick by the flow's frontmatter:
+
+1. **Find the flow** for the intent (don't guess the name):
+   `rote explore "<intent>"` (ranks installed adapters/flows) and/or `rote flow search "<q>"`.
+2. **Read the flow's frontmatter** before running it: look at
+   `~/.rote/flows/<org>/<name>/main.ts`. Does it have a `steps:` block?
+   - **Has `steps:` (DAG flow)** → `rote flow run <name> key=value …` works (needs a workspace cwd).
+   - **No `steps:` (legacy/sequential)** → `rote flow run` may misfire (it can fall back to a
+     bash invocation instead of Deno). Run it the reliable way instead:
+     ```bash
+     cd ~/.rote/flows/<org>/<name> && rote deno run --allow-all main.ts [args…]
+     ```
+     `rote deno run` uses the bundled Deno at `~/.rote/bin/deno`. Pass the flow's positional
+     args (read them from the frontmatter `parameters:`). This `cd && rote deno run` compound is
+     one logical step (see the `Bash(cd:*)` allowlist above).
+
+When unsure which mode, prefer the `cd … && rote deno run` form — it works for both and matches
+how the flows are authored.
+
 ## Shared closing-line convention (dry humor)
 
 All skills end a **clean** run on one dry one-liner, keyed to what actually just happened.

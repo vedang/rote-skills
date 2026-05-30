@@ -11,8 +11,11 @@ description: >
 # rote-update — keep rote current
 
 Two layers most people forget to update together: the **binary** and the **skill/plugin
-distribution**. This skill does both. Determine facts from live commands; one command per Bash
-call. If rote isn't on PATH, resolve its absolute path.
+distribution**. This skill does both. Determine facts from live commands; if rote isn't on
+PATH, resolve its absolute path. **Follow the shared operating rules in
+[`../../INDEX.md`](../../INDEX.md) § "Shared operating rules"** — offer the permission allowlist
+(`Bash(rote:*)` etc.) on a fresh run, and run **one command per Bash call, sequentially —
+never parallel**.
 
 ---
 
