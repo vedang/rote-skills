@@ -11,10 +11,10 @@ and Codex (the `SKILL.md` is shared; each agent reads its own manifest).
 
 ```bash
 claude plugin marketplace add modiqo/rote-skills
-claude plugin install rote-setup@rote-skills
+claude plugin install rote-onboard@rote-skills
 ```
 
-Or one line: `claude plugin marketplace add modiqo/rote-skills && claude plugin install rote-setup@rote-skills`
+Or one line: `claude plugin marketplace add modiqo/rote-skills && claude plugin install rote-onboard@rote-skills`
 
 Then run it:
 
@@ -79,7 +79,7 @@ to credentials, the agent-skill install, and a live-flow finale.
 **Claude Code:**
 
 ```bash
-claude plugin update rote-setup@rote-skills
+claude plugin update rote-onboard@rote-skills
 ```
 
 **Codex:** refresh the marketplace snapshot, then reinstall from the `/plugins` browser:
@@ -88,11 +88,18 @@ claude plugin update rote-setup@rote-skills
 codex plugin marketplace upgrade rote-skills
 ```
 
-## Skills in this marketplace
+## Skills in this plugin
 
-| Skill | Claude Code | Codex | Description |
+The `rote-onboard` plugin bundles four skills (one install pulls them all). They sit alongside
+the day-to-day `rote` skill — `rote` is for *using* rote; these are for *setting up and
+managing* it.
+
+| Skill | Claude Code | Codex | What it does |
 |---|---|---|---|
-| `rote-setup` | `/rote-setup` | `$rote-setup` | Guided first-run setup for rote |
+| `rote-setup` | `/rote-setup` | `$rote-setup` | First-run setup: install → sign in → fork (stop / powerpack / build an adapter) → prove it works. Delegates adapter work to the skills below. |
+| `rote-adapter-create` | `/rote-adapter-create` | `$rote-adapter-create` | Dry-run-first adapter creation from the catalog, a web-found spec, or a local file. Analyzes the spec, then pre-fills auth + toolsets from the analysis. |
+| `rote-adapter-config` | `/rote-adapter-config` | `$rote-adapter-config` | Tune an existing adapter — auth, base-url, write guard, sensitivity, capability index, re-auth, GraphQL field filter, policies, subagent. |
+| `rote-update` | `/rote-update` | `$rote-update` | Update the rote binary and the skills together. |
 
 ## License
 

@@ -9,9 +9,9 @@
   },
   "plugins": [
     {
-      "name": "rote-setup",
-      "source": "./plugins/rote-setup",
-      "description": "Guided, interactive first-run setup for rote — installs the CLI (or editor extension), signs you in, and walks you through powerpack adapters, credentials, OAuth, and the agent skill.",
+      "name": "rote-onboard",
+      "source": "./plugins/rote-onboard",
+      "description": "Guided rote skills — first-run setup, dry-run-first adapter creation, adapter configuration, and updates. The setup/manage companion to the day-to-day rote skill.",
       "homepage": "https://getrote.dev",
       "license": "MIT"
     }

@@ -1,0 +1,10 @@
+{
+  "name": "rote-onboard",
+  "version": "0.1.0",
+  "description": "rote skills — first-run setup, adapter create (dry-run-first), adapter config, and update.",
+  "author": {
+    "name": "Modiqo"
+  },
+  "homepage": "https://getrote.dev",
+  "license": "MIT"
+}

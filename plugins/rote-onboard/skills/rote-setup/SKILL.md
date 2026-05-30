@@ -248,83 +248,29 @@ take setup. AskUserQuestion, header `Scope`:
   anytime to go further.
 - **Pull the powerpack** (curated starter adapters) — github, gmail, calendar, linear from
   the registry. Go to the powerpack picker in **Step 3a**.
-- **Build from the API catalog** (search 872 built-in API specs) — pick any API (notion,
-  stripe, datadog, …) and create an adapter from its spec. Go to **Step 2.6 (catalog flow)**.
+- **Build an adapter** (from the 872-spec catalog, a web-found spec, or a local file) —
+  **delegate to the `rote-adapter-create` skill** (see Step 2.6). It does the dry-run-first
+  pipeline: discover spec → analyze → pick auth/toolsets → create.
 
 Login is **not** part of this fork — it has already happened. All three branches run under
 the signed-in identity; do not skip or defer sign-in for any of them.
 
-### Step 2.6 — Build an adapter from the API catalog
+### Step 2.6 — Build an adapter (delegated)
 
-The catalog is a binary-embedded set of ~872 validated API specs. Search → inspect → create.
+**Invoke the `rote-adapter-create` skill** rather than inlining adapter creation here. That
+skill owns the full dry-run-first flow — spec discovery (catalog → web → local), `--dry-run`
+analysis, auth + toolset selection driven by the analysis, create, and the post-create
+options (write guard, sensitivity, subagent, credentials). It's the same skill a user invokes
+directly later when they add more adapters, so the logic lives in one place.
 
-1. **Ask what API they want** (prose — free text): "Which API? (e.g. notion, stripe,
-   datadog, or a keyword like 'email')". Then search:
-   ```bash
-   rote adapter catalog search "notion"
-   ```
-   This lists matches as `ID · Category · Provider`. If zero matches, suggest
-   `rote adapter catalog list` (browse categories) or a broader keyword.
+After `rote-adapter-create` finishes, continue the setup flow: offer **Step 3c** (credentials,
+if the new adapter needs a static token), the **install-skill** step, and the value closer
+(**Step 5**). For ongoing tuning of an adapter, point the user at the `rote-adapter-config`
+skill.
 
-2. **Show details for the picked entry** so the user sees auth type, token page, and notes
-   (some entries carry install hints, e.g. DCR for Notion):
-   ```bash
-   rote adapter catalog info notion-mcp
-   ```
-   Surface the `Auth`, `Token Page`, and `Notes` lines — they tell the user what credential
-   they'll need and how it's obtained.
-
-3. **Confirm, then create — pick the right command + non-interactive flag.** Two creation
-   commands exist, and they take **different** non-interactive flags. Read the catalog
-   `info` output (step 2): the **Spec Type** / **Notes** tell you which one.
-
-   - **REST / OpenAPI / GraphQL / Discovery spec** → `rote adapter new <id>`. Its
-     non-interactive flag is **`--yes`**:
-     ```bash
-     rote adapter new stripe --yes
-     ```
-   - **MCP server** (Spec Type "MCP" — e.g. Notion, PostHog, Supabase; the Notes often say
-     "install via: rote adapter new-from-mcp …") → `rote adapter new-from-mcp <id> <url>`.
-     Its non-interactive flag is **`--headless`**, **not `--yes`** (`new-from-mcp` rejects
-     `--yes`):
-     ```bash
-     rote adapter new-from-mcp notion https://mcp.notion.com/mcp --headless
-     ```
-
-   Notes: `rote adapter new <id>` resolves the spec from the catalog; a provider-side
-   `HTTP 401` means the API needs auth even to read its spec (rare). MCP creation runs the
-   server's auth flow during creation — for OAuth-DCR servers (Notion) it **opens a browser**
-   right then; tell the user to complete it. `--headless` only skips the interactive
-   *tool-selection* wizard (includes all tools); it does not skip the browser auth.
-
-   **After creating an OAuth-DCR MCP adapter**, re-authorization later is a browser flow:
-   `rote adapter reauth <id>` (add `--force-reregister` only if the provider pruned the
-   client). There is no pasted token for these.
-
-4. **Optional — prove the new adapter works.** A probe call needs a **workspace cwd** (see
-   "Running a workspace-scoped command" in Behavior notes). Create a workspace and probe in
-   the same Bash call — never run `rote <adapter>_probe` from a scratch dir (it fails with
-   `not in a workspace directory`):
-   ```bash
-   rote init proof --seq --force
-   ```
-   ```bash
-   cd ~/.rote/rote/workspaces/proof && rote <adapter>_probe "<query>"
-   ```
-   For an OAuth-DCR adapter the browser auth from creation must have completed first.
-
-5. **Loop or move on.** Offer to add another (`search` again) or proceed to credentials
-   (Step 3c) for the adapter(s) just created, then the install-skill step and the value
-   closer (Step 5).
-
-After the catalog branch, jump to **Step 3c** (credentials) for the new adapters, then the
-install-skill step and the value closer.
-
-> **Future direction (not yet wired into this skill):** an adapter created from the catalog
-> should be **pushed to the user's private org hub** so the team shares it —
-> `rote registry adapter push <adapter-path> <org-slug>`. When that lands, this step will
-> offer "share this adapter with your org" after a successful `rote adapter new`, gated on
-> the signed-in identity and org membership. For now, created adapters stay local.
+> **Future direction (not yet wired):** a created adapter should be **pushed to the user's
+> private org hub** so the team shares it — `rote registry adapter push <path> <org-slug>`,
+> gated on identity + org membership. For now, created adapters stay local.
 
 ---
 
@@ -337,7 +283,8 @@ header `Setup`, so they can queue several:
 | Option | What it does | Command |
 |---|---|---|
 | **Pull powerpack adapters** (recommended) | Curated registry adapters, à la carte. **See 3a.** | `rote registry adapter pull bootstrap/<name> --yes` |
-| **Build from API catalog** | Search 872 built-in API specs, create adapters. **See -0.6.** | `rote adapter catalog search …` → `rote adapter new <id> --yes` |
+| **Build an adapter** | Catalog / web / local spec → dry-run-first create. **Delegates to `rote-adapter-create`.** | invoke the `rote-adapter-create` skill |
+| **Configure an adapter** | Tune auth, base-url, sensitivity, guard, etc. **Delegates to `rote-adapter-config`.** | invoke the `rote-adapter-config` skill |
 | **Set up credentials** | Token wizard for installed adapters. **Secrets — see 3c.** | `rote powerpack credentials` (run in user's own terminal) |
 | **Connect Google (OAuth)** | Browser OAuth for Google adapters (gmail/calendar). **Non-interactive — see 3d.** | `rote oauth setup google --scopes <list>` |
 | **Install the agent skill** | Lets your coding agent (Claude/Cursor/Codex) use rote. | `rote install skill` |

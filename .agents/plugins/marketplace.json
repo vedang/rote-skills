@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "rote-setup",
+      "name": "rote-onboard",
       "source": {
         "source": "local",
-        "path": "./plugins/rote-setup"
+        "path": "./plugins/rote-onboard"
       },
       "policy": {
         "installation": "AVAILABLE",
