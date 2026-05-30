@@ -37,35 +37,55 @@ the live probe wins.
 
 ---
 
-## Step -1 — Is rote installed? (pre-flight gate)
+## Step -1 — Pre-flight gate: binary × state (the 2×2)
 
 Determine this **only** from live probes — never from memory or a "rote is active here"
-note. Two probes, in order:
+note. **Probe sequentially, one command per Bash call — never in parallel.** Each probe gates
+the next; firing them as a batch (e.g. `rote whoami` alongside the `command -v rote` that's
+supposed to decide whether `rote` even exists) is incoherent and wastes tokens. Do not run any
+`rote <subcommand>` until the binary probe has resolved.
 
-1. Is `rote` on PATH?
-   ```bash
+**Probe A — is the binary present?** (two sub-checks, in order, stop at the first hit)
+
+1. ```bash
    command -v rote
    ```
-   If it prints a path, rote is installed and invocable as `rote`. **Use that name for all
-   later commands.**
+   Prints a path → installed, invoke as `rote` for all later commands.
 
-2. If step 1 is empty (exit 1), it may be installed but **not on this shell's PATH** (the
-   installer commonly drops it in `~/.local/bin`, which a non-interactive shell often omits).
-   Probe the known install locations directly before concluding it's missing:
+2. Only if A.1 was empty: it may be installed but off this shell's PATH (the installer
+   commonly drops it in `~/.local/bin`, which a non-interactive shell omits):
    ```bash
    ls -la "$HOME/.local/bin/rote" "$HOME/.cargo/bin/rote" 2>/dev/null
    ```
-   - If either path exists → rote **is** installed, just off PATH. Use the **absolute path**
-     (e.g. `$HOME/.local/bin/rote`) for every later `rote` command in this run, and tell the
-     user their shell PATH is missing `~/.local/bin` (they can add it / open a new terminal).
-   - If neither exists **and** `command -v rote` was empty → genuinely **not installed**.
+   - Either path exists → installed, off PATH. Use the **absolute path** for every later
+     `rote` command, and tell the user their shell PATH is missing `~/.local/bin`.
+   - Neither exists **and** A.1 empty → **binary absent**.
 
-Branch on the combined result:
+**Probe B — is there existing state?** One call:
+```bash
+test -d "$HOME/.rote" && echo "STATE" || echo "CLEAN"
+```
+`~/.rote` holds adapters, tokens, flows, workspaces — its presence means a prior install left
+state behind.
 
-- **Installed** (on PATH or found at a known path) → go to **Step 0 (login)**. Every
-  experience is identity-gated, so sign-in always runs before the fork.
-- **Not installed** (both probes empty) → offer the install choice via AskUserQuestion,
-  header `Install`:
+**Branch on the 2×2** (this is the whole point — most cells skip the deep probing):
+
+| Binary | `~/.rote` | Meaning | Action |
+|:---:|:---:|---|---|
+| ✗ | ✗ | **Clean slate** | Skip all state probing — there's nothing to probe. Go straight to the **install** choice below, then Step 0 (login). |
+| ✓ | ✗ | **Binary, no state** | Ask if the binary should be updated first (`rote self-update`, or defer to **rote-update**), then begin setup fresh at Step 0. No `whoami` needed — there's no session to detect. |
+| ✗ | ✓ | **Orphaned state** | The binary's gone but state remains (possibly stale / version-incompatible). **Propose backing up `~/.rote` and starting clean** — via AskUserQuestion, default to back-up-then-clean: move it aside, then install fresh. Confirm before moving anything. |
+| ✓ | ✓ | **Existing install** | Only this cell justifies the deeper probing. Proceed to **Step 0 (login)** and branch on `rote whoami`'s real output. |
+
+For the **orphaned-state** back-up (only after the user confirms): move, don't delete —
+```bash
+mv "$HOME/.rote" "$HOME/.rote.bak-$(date +%Y%m%d-%H%M%S)"
+```
+Tell the user where the backup is so they can restore adapters/tokens later if wanted. Then
+treat the run as **clean slate** (install → login → fork).
+
+**Install choice** (clean-slate and orphaned-after-backup) — offer via AskUserQuestion,
+header `Install`:
 
 **Command convention for the rest of this run:** every step below writes `rote …`. If Step
 -1 resolved rote on PATH, run it verbatim. If it resolved only at an absolute path (off
