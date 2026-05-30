@@ -4,10 +4,10 @@ description: >
   Guided, interactive first-run setup for rote. Walks a user from zero to a working rote
   install — detects whether they already have an account, signs them in (Google/GitHub),
   or branches to request-an-invite / claim-an-invite-code, then offers a menu of the
-  remaining onboarding steps (powerpack adapters, credentials, OAuth, install skill,
-  explore). Use when the user says "set up rote", "rote setup", "onboard me to rote",
+  remaining onboarding steps (install adapters à la carte, credentials, OAuth, install
+  skill, explore). Use when the user says "set up rote", "rote setup", "onboard me to rote",
   "get rote working", "install and configure rote", "/rote-setup", or is a first-timer
-  who needs hand-holding through `rote join` / `rote login` / `rote pull powerpack`.
+  who needs hand-holding through `rote join` / `rote login` / installing adapters.
   This skill drives the human through choices with AskUserQuestion at each branch —
   it does NOT silently run the whole one-liner.
 ---
@@ -207,36 +207,47 @@ header `Setup`, so they can queue several:
 
 | Option | What it does | Command |
 |---|---|---|
-| **Pull powerpack** (recommended) | Curated starter adapters (github, gmail, calendar, linear, notion). | `rote pull powerpack --with-flows --yes` — preset via 3a |
+| **Install adapters** (recommended) | Pick from the live registry, à la carte. **See 3a.** | `rote registry adapter pull bootstrap/<name> --yes` |
 | **Set up credentials** | Token wizard for installed adapters. **Secrets — see 3c.** | `rote powerpack credentials` (run in user's own terminal) |
 | **Connect Google (OAuth)** | Browser OAuth for Google adapters (gmail/calendar). **Non-interactive — see 3d.** | `rote oauth setup google --scopes <list>` |
 | **Install the agent skill** | Lets your coding agent (Claude/Cursor/Codex) use rote. | `rote install skill` |
 | **Explore / learn** | Onboarding tree + human-friendly help. | `rote how`, then `rote human` |
 
-Recommend the order **powerpack → credentials → OAuth → install skill → explore**, but run
+Recommend the order **adapters → credentials → OAuth → install skill → explore**, but run
 only what they pick, one at a time, confirming after each.
 
-### Step 3a — Powerpack preset choice
+### Step 3a — Install adapters (à la carte, from the live registry)
 
-If they pick "Pull powerpack", first offer a preset (AskUserQuestion, header `Powerpack`):
+**Do not use `rote pull powerpack` presets.** The presets list adapters that aren't
+published to the reachable registry (`notion`, `gemini-api`, `googledrive`, `googledocs`),
+so they partially or fully fail (`ai` fails entirely; `default`/`dev` choke on notion;
+`google` loses drive+docs). Install à la carte instead — every pick either installs or
+gives its own clear error, with no phantom adapters.
 
-- **Default** (recommended) — github, gmail, calendar, linear, notion (5 adapters):
-  `rote pull powerpack --with-flows --yes`
-- **Dev** — dev-focused adapters: `rote pull powerpack --preset dev --with-flows --yes`
-- **Google** — google-only: `rote pull powerpack --preset google --with-flows --yes`
-- **AI** — gemini-api: `rote pull powerpack --preset ai --with-flows --yes`
-- **All** — everything: `rote pull powerpack --all --with-flows --yes`
+**Query the registry at runtime** — never hardcode the list, it grows:
 
-Always pass **`--yes`** — the adapter picker is interactive and dies on `/dev/tty` in an
-agent shell (same failure class as the installer). `--with-flows` includes crystallized
-flows. After it runs, **report the install summary verbatim** — partial success is normal:
+```bash
+rote registry adapter list --community bootstrap
+```
 
-- **`notion` fails** with `Adapter not found: bootstrap/notion`. This is a known
-  powerpack-preset id bug — the preset can't resolve Notion. The other four (github,
-  gmail, calendar, linear) install fine. **Don't treat the run as failed.** Notion needs
-  the dedicated DCR path — see **Step 3e**, and offer it as a follow-up.
-- Note which adapters need credentials (the summary prints `GITHUB_TOKEN`,
-  `GSUITE_TOKEN`, `LINEAR_API_TOKEN`) and carry that into the credentials step.
+Build the AskUserQuestion checklist (`multiSelect: true`, header `Adapters`) from **only
+the adapters that command returns**. As of writing the bootstrap community publishes:
+`calendar, cloudflare-api, elevenlabs, exasearch, github, gmail, linear, parallelweb,
+polymarket-data, polymarket-gamma, stripe` — but trust the live output, not this list.
+
+**Cap the selection at 2 adapters per run** (fewer than 3). If the user wants more, they
+re-run this step. Keep the first pass small so credential setup stays manageable.
+
+Install each picked adapter as its own Bash call:
+
+```bash
+rote registry adapter pull bootstrap/github --yes
+```
+
+`--yes` keeps it non-interactive. After each, note whether it needs a credential and carry
+that into Step 3c. Then reindex once at the end if needed (`rote adapter list` to confirm
+ready state). Adapters that need an API token will surface their env var name; Google
+adapters (gmail/calendar) use OAuth via Step 3d, not a static token.
 
 ### Step 3b — Install skill provider
 
@@ -303,26 +314,20 @@ Drive) and pass just those — comma-separated, no spaces. This still opens a **
 the Google consent screen; tell the user to complete it there. The token is stored as
 `GSUITE_TOKEN`; confirm with `rote powerpack tokens` afterward.
 
-### Step 3e — Notion (OAuth DCR — install then reauth)
+### Step 3e — OAuth DCR adapters (reference)
 
-Notion MCP uses **OAuth Dynamic Client Registration (DCR)**, not a static token, so it
-takes two commands and the powerpack preset can't do it (the preset's `bootstrap/notion`
-lookup fails). Run it as a dedicated follow-up:
+Some MCP adapters authenticate via **OAuth Dynamic Client Registration (DCR)** rather than
+a static token — for those, after `rote registry adapter pull bootstrap/<name> --yes`, run:
 
-1. **Install the adapter** (the working path — adapter id is `notion`):
-   ```bash
-   rote registry adapter pull bootstrap/notion --yes
-   ```
-2. **Authorize via DCR** — first run registers a DCR client (RFC 7591) and opens a PKCE
-   browser flow:
-   ```bash
-   rote adapter reauth notion
-   ```
-   Tell the user to complete the Notion authorization in the browser. If a later reauth
-   fails because the provider pruned the registered client (rare), re-run with
-   `rote adapter reauth notion --force-reregister`.
+```bash
+rote adapter reauth <name>
+```
 
-Confirm with `rote adapter list` (notion should appear ready) and `rote powerpack tokens`.
+The first run registers a DCR client (RFC 7591) and opens a PKCE browser flow; tell the
+user to complete it in the browser. If a later reauth fails because the provider pruned the
+client (rare), add `--force-reregister`. Note: **Notion is not currently in the reachable
+registry** (`bootstrap` / `modiqo`), so don't offer a Notion install — the bootstrap
+community list in Step 3a is the source of truth for what's actually installable.
 
 ---
 
