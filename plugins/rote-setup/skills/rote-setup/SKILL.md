@@ -261,26 +261,43 @@ rote install skill --provider claude
 (Use `--provider all` for "All".) `--force` overwrites an existing SKILL.md without
 prompting — only add it if the user confirms an overwrite.
 
-### Step 3c — Credentials (secrets — never echo)
+### Step 3c — Credentials (static tokens — hand off, never capture in chat)
 
-`rote token set <name> <value>` takes the token as a **clear-text CLI argument** — the
-secret lands in the shell history *and* this session's transcript. The current CLI has no
-stdin/file input mode for it. So:
+**State this constraint up front, before offering any option.** A Claude skill cannot
+render a masked input field — the only interactive surface is AskUserQuestion (fixed
+buttons, no text/password field), and anything the user types into the conversation is
+recorded in the transcript in clear text. So **there is no way to enter a static token
+through the agent without exposing it.** The terminal wizard is the only unexposed path.
+Say this plainly so the user understands the handoff isn't friction, it's the secure choice.
 
-- **Default to the interactive wizard, run in the user's OWN terminal.** Tell the user to
-  run, in their terminal (not via the agent):
+Two kinds of credential, handled very differently — **classify first**:
+
+- **OAuth adapters (Google: gmail, calendar)** → no static token at all. Skip to **Step 3d**
+  — the browser redirect keeps the secret off the terminal *and* the transcript. Always
+  prefer this when the adapter supports it.
+- **Static-token adapters (github `GITHUB_TOKEN`, linear `LINEAR_API_TOKEN`, stripe, etc.)**
+  → the user holds a bearer string that has to be conveyed. Hand off to the masked wizard:
+
+  **Default — hand off to the terminal wizard.** Tell the user to run, **in their own
+  terminal** (not via the agent):
   ```
   rote powerpack credentials
   ```
-  It prompts per-adapter and **masks** input — secrets never pass through the agent. This
-  is the recommended path. Then they return and you re-verify (see verify below).
-- **`rote token set` is an explicit opt-in only.** Offer it via AskUserQuestion only if the
-  user *insists* on setting a single token through the agent, and state plainly: "the token
-  will be visible in this session's transcript; rotate it afterward if it's long-lived."
-  Only on explicit go-ahead:
+  It prompts per-adapter and **masks** input (rote uses `rpassword`), storing to
+  `~/.rote/secrets/` (perms 600). The secret never passes through the agent or the
+  transcript. This is the recommended path — frame the handoff as the secure one. The user
+  runs it, returns, and you verify (below). Note: the wizard may also list `GSUITE_TOKEN` —
+  tell the user to **skip it**, since Google is wired via OAuth in Step 3d, not a token.
+
+  **`rote token set` is a last-resort opt-in only.** Offer it via AskUserQuestion *only* if
+  the user explicitly refuses the terminal handoff and insists on setting a token through
+  the agent. State plainly: "this puts the token in the transcript and shell history —
+  rotate it afterward if it's long-lived." Only on explicit go-ahead:
   ```bash
-  rote token set LINEAR_API_TOKEN "<value>"
+  rote token set GITHUB_TOKEN "<value>"
   ```
+  (This is the exposure tracked for a future `--stdin` fix — see the secrets behavior note.)
+
 - **Never print, echo, or re-quote a token back** to the user once set. Don't `cat` the
   secrets dir.
 
@@ -355,10 +372,13 @@ onboarding tree. Offer to crystallize a first flow or run `rote flow search "<in
   that prompts dies on `/dev/tty: Device not configured`. Use the documented switch for
   each: installer → `ROTE_YES=1`; powerpack picker → `--yes`; Google OAuth → `--scopes …`.
   The one prompt you must NOT automate away is credential entry — see secrets below.
-- **Never handle secrets in the agent.** Default credential setup to the interactive
-  `rote powerpack credentials` wizard in the *user's own* terminal (masked input).
-  `rote token set <name> <value>` puts the token in the transcript — offer it only as an
-  explicit, warned opt-in, and never echo a token back or read the secrets dir.
+- **Never handle secrets in the agent — you cannot mask them.** A skill has no masked
+  input field; anything typed in chat is in the transcript. So static tokens always hand
+  off to `rote powerpack credentials` in the *user's own* terminal (masked via rpassword) —
+  frame the handoff as the secure path, not friction. Prefer OAuth (browser redirect) over
+  any static token where the adapter supports it. `rote token set <name> <value>` is a
+  last-resort opt-in that puts the token in the transcript — only on explicit insistence,
+  with a rotate-afterward warning. Never echo a token back or read the secrets dir.
 - **Verify without a workspace.** To check a credential, use `rote powerpack tokens` /
   `rote token get` — never a flow or `rote ready`, which need a workspace cwd and fail with
   `not in a workspace directory` / `Permission denied (os error 13)` from a scratch dir.

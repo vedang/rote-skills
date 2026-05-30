@@ -1,6 +1,6 @@
 {
   "name": "rote-setup",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Guided, interactive first-run setup for rote.",
   "author": {
     "name": "Modiqo"
