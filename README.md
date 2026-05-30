@@ -58,86 +58,14 @@ Every branch is a clear choice; it never silently runs the whole one-liner.
 
 ## Decision flow
 
-```
-                            /rote-setup
-                                 │
-                                 ▼
-                   ┌───────────────────────────┐
-                   │  rote binary installed?    │
-                   │     command -v rote        │
-                   └───────────────────────────┘
-                       │                   │
-                   no  │                   │  yes
-                       ▼                   │
-        ┌──────────────────────────┐      │
-        │   How to install?        │      │
-        ├──────────────────────────┤      │
-        │ • CLI one-liner          │      │
-        │ • Editor extension       │      │
-        │   (VS Code / Cursor /    │      │
-        │    Antigravity)          │      │
-        │ • I'll do it myself      │      │
-        └──────────────────────────┘      │
-                       │                   │
-                       └─────────┬─────────┘
-                                 ▼
-                   ╔═══════════════════════════╗
-                   ║   SIGN IN  (mandatory)     ║   every path is
-                   ║   rote whoami → login      ║   identity-gated
-                   ╟───────────────────────────╢
-                   ║ Have an account?           ║
-                   ║  • yes → Google / GitHub   ║
-                   ║  • have invite code → join ║
-                   ║  • no account → request    ║
-                   ╚═══════════════════════════╝
-                                 │
-                                 ▼  signed in as you@…
-              ┌───────────────────────────┐
-              │   How far do you want      │
-              │   to go?                   │
-              └───────────────────────────┘
-          ┌───────────────┬──────────────────┐
-          ▼               ▼                  ▼
-  ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
-  │ Just the CLI │ │  Powerpack   │ │   API catalog    │
-  │   — stop     │ │  (curated)   │ │  (872 specs)     │
-  ├──────────────┤ ├──────────────┤ ├──────────────────┤
-  │ rote how     │ │ pick from    │ │ catalog search   │
-  │              │ │ live registry│ │   ↓              │
-  │              │ │ à la carte   │ │ catalog info     │
-  │              │ │              │ │   ↓              │
-  │              │ │              │ │ adapter new <id> │
-  └──────────────┘ └──────────────┘ └──────────────────┘
-          │               │                  │
-          │               └────────┬─────────┘
-          │                        ▼   adapters installed
-          │            ┌───────────────────────────┐
-          │            │   Post-login menu          │
-          │            │   (pick any, any order)    │
-          │            ├───────────────────────────┤
-          │            │ • credentials (masked)     │
-          │            │ • Google OAuth             │
-          │            │ • install agent skill      │
-          │            │ • explore / learn          │
-          │            └───────────────────────────┘
-          │                        │
-          │                        ▼
-          │            ┌───────────────────────────┐
-          │            │   Prove value:             │
-          │            │   run one live flow        │
-          │            │   on your own data         │
-          │            └───────────────────────────┘
-          │                        │
-          └───────────┬────────────┘
-                      ▼
-                 ✦  done  ✦
-```
+<p align="center">
+  <img src="assets/decision-flow.svg" alt="rote-setup decision flow — install gate, mandatory identity sign-in, then a three-way fork: just the CLI, powerpack, or API catalog" width="720">
+</p>
 
-Legend: `╔═╗` = always runs (identity gate) · `┌─┐` = a choice you make ·
-`✦ done ✦` = clean exit. **Just the CLI** ends right away; **Powerpack** and
-**API catalog** both flow on to credentials → skill install → a live-flow
-finale. Every `•` is an AskUserQuestion option — the wizard pauses for you at
-each fork and never runs the whole thing silently.
+The flow is **identity-gated** (sign-in always runs) and **choice-driven** at every fork —
+the wizard pauses for an `AskUserQuestion` at each branch and never runs the whole setup
+silently. **Just the CLI** exits clean; **Powerpack** and **API catalog** both continue on
+to credentials, the agent-skill install, and a live-flow finale.
 
 ## Updating
 
