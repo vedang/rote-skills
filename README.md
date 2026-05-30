@@ -42,7 +42,7 @@ $rote-setup
 > **Invocation differs by agent:** Claude Code uses the slash command **`/rote-setup`**;
 > Codex uses the skill syntax **`$rote-setup`** (Codex skills are invoked with `$`, not `/`).
 
-## What `/rote-setup` does
+## What the wizard does
 
 A guided, interactive wizard that takes you from zero to a working rote install:
 
@@ -76,15 +76,23 @@ to credentials, the agent-skill install, and a live-flow finale.
 
 ## Updating
 
+**Claude Code:**
+
 ```bash
 claude plugin update rote-setup@rote-skills
 ```
 
+**Codex:** refresh the marketplace snapshot, then reinstall from the `/plugins` browser:
+
+```bash
+codex plugin marketplace upgrade rote-skills
+```
+
 ## Skills in this marketplace
 
-| Skill | Command | Description |
-|---|---|---|
-| `rote-setup` | `/rote-setup` | Guided first-run setup for rote |
+| Skill | Claude Code | Codex | Description |
+|---|---|---|---|
+| `rote-setup` | `/rote-setup` | `$rote-setup` | Guided first-run setup for rote |
 
 ## License
 
