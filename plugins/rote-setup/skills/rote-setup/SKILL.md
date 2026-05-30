@@ -274,18 +274,46 @@ The catalog is a binary-embedded set of ~872 validated API specs. Search → ins
    Surface the `Auth`, `Token Page`, and `Notes` lines — they tell the user what credential
    they'll need and how it's obtained.
 
-3. **Confirm, then create.** On the user's go-ahead, create the adapter from the catalog
-   spec non-interactively:
-   ```bash
-   rote adapter new notion-mcp --yes
-   ```
-   `rote adapter new <id>` resolves the spec from the catalog. Note: creation fetches the
-   provider's spec — a provider-side `HTTP 401` means the API needs auth to even read its
-   spec (rare); most catalog entries create cleanly and surface their token env var after.
-   For MCP-type entries the `info` Notes may point at `rote adapter new-from-mcp <id> <url>`
-   instead — follow whichever the catalog entry recommends.
+3. **Confirm, then create — pick the right command + non-interactive flag.** Two creation
+   commands exist, and they take **different** non-interactive flags. Read the catalog
+   `info` output (step 2): the **Spec Type** / **Notes** tell you which one.
 
-4. **Loop or move on.** Offer to add another (`search` again) or proceed to credentials
+   - **REST / OpenAPI / GraphQL / Discovery spec** → `rote adapter new <id>`. Its
+     non-interactive flag is **`--yes`**:
+     ```bash
+     rote adapter new stripe --yes
+     ```
+   - **MCP server** (Spec Type "MCP" — e.g. Notion, PostHog, Supabase; the Notes often say
+     "install via: rote adapter new-from-mcp …") → `rote adapter new-from-mcp <id> <url>`.
+     Its non-interactive flag is **`--headless`**, **not `--yes`** (`new-from-mcp` rejects
+     `--yes`):
+     ```bash
+     rote adapter new-from-mcp notion https://mcp.notion.com/mcp --headless
+     ```
+
+   Notes: `rote adapter new <id>` resolves the spec from the catalog; a provider-side
+   `HTTP 401` means the API needs auth even to read its spec (rare). MCP creation runs the
+   server's auth flow during creation — for OAuth-DCR servers (Notion) it **opens a browser**
+   right then; tell the user to complete it. `--headless` only skips the interactive
+   *tool-selection* wizard (includes all tools); it does not skip the browser auth.
+
+   **After creating an OAuth-DCR MCP adapter**, re-authorization later is a browser flow:
+   `rote adapter reauth <id>` (add `--force-reregister` only if the provider pruned the
+   client). There is no pasted token for these.
+
+4. **Optional — prove the new adapter works.** A probe call needs a **workspace cwd** (see
+   "Running a workspace-scoped command" in Behavior notes). Create a workspace and probe in
+   the same Bash call — never run `rote <adapter>_probe` from a scratch dir (it fails with
+   `not in a workspace directory`):
+   ```bash
+   rote init proof --seq --force
+   ```
+   ```bash
+   cd ~/.rote/rote/workspaces/proof && rote <adapter>_probe "<query>"
+   ```
+   For an OAuth-DCR adapter the browser auth from creation must have completed first.
+
+5. **Loop or move on.** Offer to add another (`search` again) or proceed to credentials
    (Step 3c) for the adapter(s) just created, then the install-skill step and the value
    closer (Step 5).
 
@@ -525,23 +553,28 @@ prose (AskUserQuestion is for fixed choices; param values are free text), e.g. "
 needs `repository` (Repository in format 'owner/repo') — what should I use?" Offer a sensible
 default where obvious (e.g. `modiqo/rote`).
 
-**5. Preview, then run.** Params are passed as `key=value` pairs. First do a **dry run** to
-show the plan without making calls (DAG flows support `--dry-run`):
+**5. Preview, then run — inside a workspace.** `flow run` needs a workspace cwd. Create one
+and run **in the same Bash call** (see "Running a workspace-scoped command" in Behavior
+notes — `eval $(rote cd …)` / `--enter` won't carry across the agent's separate Bash calls).
+Params are `key=value` pairs; do a `--dry-run` first to preview without making calls:
 
 ```bash
-rote flow run list-top-committers repository=modiqo/rote --dry-run
+rote init proof --seq --force
+```
+```bash
+cd ~/.rote/rote/workspaces/proof && rote flow run list-top-committers repository=modiqo/rote --dry-run
 ```
 
 Then run it for real:
 
 ```bash
-rote flow run list-top-committers repository=modiqo/rote
+cd ~/.rote/rote/workspaces/proof && rote flow run list-top-committers repository=modiqo/rote
 ```
 
-**Workspace note:** `flow run` needs a rote workspace context — if it fails with `not in a
-workspace directory` or `Permission denied (os error 13)`, that's the cwd requirement (the
-same one that bit the `/tmp` verify earlier), **not** a bad credential or flow. Run from a
-real workspace dir (or `rote init` one) rather than a scratch path.
+If it still fails with `not in a workspace directory` / `Permission denied (os error 13)`,
+the `cd` didn't take — make sure the workspace path is right (`~/.rote/rote/workspaces/<name>`)
+and that the `cd` and `rote` share one Bash call. That error is the cwd requirement, **not** a
+bad credential or flow.
 
 Show the flow's output to the user — that's the payoff. Then suggest the main **rote** skill
 for day-to-day use (`rote flow search "<intent>"` before any direct adapter call).
@@ -551,13 +584,16 @@ for day-to-day use (`rote flow search "<intent>"` before any direct adapter call
 ## Behavior notes
 
 - **One command per Bash call.** No `&&`, `|`, or `;` chains. The user wants each
-  success/failure visible on its own. The one allowed compound is the vendor installer
-  `ROTE_YES=1 bash -c "$(curl -fsSL https://getrote.dev/install)"` — a single logical step,
-  run only after explicit confirmation since it executes remote code.
+  success/failure visible on its own. Two allowed compounds, both single logical steps: the
+  vendor installer `ROTE_YES=1 bash -c "$(curl -fsSL https://getrote.dev/install)"` (run only
+  after explicit confirmation — it executes remote code), and `cd <workspace> && rote …` for
+  workspace-scoped commands (the cwd must hold for the command; see below).
 - **Everything must run non-interactively** — the agent shell has no TTY, so any command
-  that prompts dies on `/dev/tty: Device not configured`. Use the documented switch for
-  each: installer → `ROTE_YES=1`; powerpack picker → `--yes`; Google OAuth → `--scopes …`.
-  The one prompt you must NOT automate away is credential entry — see secrets below.
+  that prompts dies on `/dev/tty: Device not configured`. The non-interactive switch differs
+  per command: installer → `ROTE_YES=1`; powerpack picker → `--yes`; `rote adapter new` →
+  `--yes`; `rote adapter new-from-mcp` → **`--headless`** (it rejects `--yes`); Google OAuth →
+  `--scopes …`. Don't guess the flag — if unsure, check `<command> --help` first. The one
+  prompt you must NOT automate away is credential entry — see secrets below.
 - **Never handle secrets in the agent — you cannot mask them.** A skill has no masked
   input field; anything typed in chat is in the transcript. So static tokens always hand
   off to `rote powerpack credentials` in the *user's own* terminal (masked via rpassword) —
@@ -565,9 +601,23 @@ for day-to-day use (`rote flow search "<intent>"` before any direct adapter call
   any static token where the adapter supports it. `rote token set <name> <value>` is a
   last-resort opt-in that puts the token in the transcript — only on explicit insistence,
   with a rotate-afterward warning. Never echo a token back or read the secrets dir.
-- **Verify without a workspace.** To check a credential, use `rote powerpack tokens` /
-  `rote token get` — never a flow or `rote ready`, which need a workspace cwd and fail with
-  `not in a workspace directory` / `Permission denied (os error 13)` from a scratch dir.
+- **Verify without a workspace where possible.** To check a credential, use
+  `rote powerpack tokens` / `rote token get` — these work anywhere. But **anything that runs
+  a flow, probes an adapter, or calls an API needs a workspace cwd** (`rote flow run`,
+  `rote <adapter>_probe`, `rote ready`, `rote POST`) — outside one they fail with
+  `not in a workspace directory` / `Permission denied (os error 13)`.
+- **Running a workspace-scoped command (the correct pattern).** The agent shell does not
+  persist cwd between Bash calls, and `rote cd` / `--enter` only affect an interactive shell —
+  so `eval $(rote cd …)` won't carry over. Instead, create the workspace, then `cd` into its
+  real directory **in the same Bash call** as the command:
+  ```bash
+  rote init proof --seq --force
+  cd ~/.rote/rote/workspaces/proof && rote flow run <name> key=value
+  ```
+  The workspace lives at `~/.rote/rote/workspaces/<name>`. This `cd && rote …` compound is a
+  necessary exception to the one-command-per-call rule (the cwd must hold for the command).
+  `--force` skips the "search for existing flows first" gate. Clean up later with
+  `rote workspace clean` if desired.
 - **Detect before offering.** Confirm the rote binary (`command -v rote`) before any rote
   command, and detect installed editors (`command -v code|cursor|antigravity`) before
   offering the extension path. Never present an install target that isn't there.
