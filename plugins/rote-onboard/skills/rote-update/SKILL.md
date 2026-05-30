@@ -12,7 +12,9 @@ description: >
 
 Two layers most people forget to update together: the **binary** and the **skill/plugin
 distribution**. This skill does both. Determine facts from live commands; if rote isn't on
-PATH, resolve its absolute path. **Follow the shared operating rules in
+PATH, resolve it via the **narrow probe** (check `$HOME/.local/bin/rote` then
+`$HOME/.cargo/bin/rote` — never a deep `find`; see INDEX § 1b). **Follow the shared operating
+rules in
 [`../../INDEX.md`](../../INDEX.md) § "Shared operating rules"** — offer the permission allowlist
 (`Bash(rote:*)` etc.) on a fresh run, and run **one command per Bash call, sequentially —
 never parallel**.

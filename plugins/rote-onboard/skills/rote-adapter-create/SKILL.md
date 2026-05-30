@@ -27,7 +27,8 @@ Core rules:
 - **Never `--yes` create from a discovered spec without a successful `--dry-run` first.** The
   dry-run is the validation gate at every discovery branch.
 - **Determine facts from live commands, never from memory.** (If the rote binary isn't on
-  PATH, resolve its absolute path — same as the setup skill.)
+  PATH, resolve it via the **narrow probe** — check `$HOME/.local/bin/rote` then
+  `$HOME/.cargo/bin/rote`, never a deep `find` of the home dir. See INDEX § 1b.)
 - **One command per Bash call, strictly sequential — never parallel.** Each stage gates the
   next (dry-run result drives auth/toolsets); firing steps in parallel breaks the pipeline.
 - Secrets (API tokens) are never captured in chat — hand off to the masked wizard (see Stage 5).

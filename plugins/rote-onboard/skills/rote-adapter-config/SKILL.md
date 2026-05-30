@@ -16,7 +16,9 @@ dry-run-first pipeline), this is a **menu of discrete operations**, each a small
 **show current state → confirm the change → apply → re-show**. Return to the menu after each.
 
 Rules: determine facts from live commands (never memory); secrets never captured in chat
-(masked handoff); if rote isn't on PATH, resolve its absolute path. **Follow the shared
+(masked handoff); if rote isn't on PATH, resolve it via the **narrow probe** (check
+`$HOME/.local/bin/rote` then `$HOME/.cargo/bin/rote` — never a deep `find`; see INDEX § 1b).
+**Follow the shared
 operating rules in [`../../INDEX.md`](../../INDEX.md) § "Shared operating rules"** — offer the
 permission allowlist (`Bash(rote:*)` / `Bash(cd:*)` / `Bash(rote deno run:*)`) on a fresh run,
 and run **one command per Bash call, strictly sequential — never parallel**.

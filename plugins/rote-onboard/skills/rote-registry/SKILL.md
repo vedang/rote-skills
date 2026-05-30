@@ -25,7 +25,8 @@ rules"** — on a fresh run, offer the permission allowlist (`Bash(rote:*)` / `B
 
 Core rules:
 - **Determine facts from live `rote registry` commands, never from memory.** (If the rote
-  binary isn't on PATH, resolve its absolute path — same as the setup skill.)
+  binary isn't on PATH, resolve it via the **narrow probe** — check `$HOME/.local/bin/rote`
+  then `$HOME/.cargo/bin/rote`, never a deep `find` of the home dir. See INDEX § 1b.)
 - **One command per Bash call, strictly sequential — never parallel.** Probes gate decisions.
 - **Auth-gate first.** Every registry op needs a valid session — see Stage 0.
 - **Existence is checked by fingerprint/version, not just name** — re-pushing an identical

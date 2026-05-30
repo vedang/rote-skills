@@ -49,6 +49,21 @@ available):
 These live in `~/.claude/settings.json` under `permissions.allow`. Offer to add them once;
 don't re-ask. (Codex: the equivalent is its approved-commands / `prefix_rule` config.)
 
+### 1b. Resolving the rote binary — narrow probe, NEVER a deep search
+
+If `command -v rote` is empty, rote may be installed but off this shell's PATH. Check the
+**two known install locations directly** — do **NOT** run `find ~` / a recursive search of the
+home directory (it's slow, triggers a scary read-everything permission prompt, and is exactly
+the overreach to avoid):
+
+```bash
+ls -la "$HOME/.local/bin/rote" "$HOME/.cargo/bin/rote" 2>/dev/null
+```
+
+- Either path exists → use that **absolute path** for every later `rote` command in the run.
+- Neither exists **and** `command -v rote` was empty → the binary is genuinely **not
+  installed** (route to install, or tell the user). Do not go hunting for it elsewhere.
+
 ### 2. Step-wise, NEVER parallel
 
 Run **one command per Bash call, strictly in sequence** — never batch independent probes into a
