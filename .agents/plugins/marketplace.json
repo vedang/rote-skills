@@ -1,0 +1,20 @@
+{
+  "name": "rote-skills",
+  "interface": {
+    "displayName": "rote Skills"
+  },
+  "plugins": [
+    {
+      "name": "rote-setup",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rote-setup"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

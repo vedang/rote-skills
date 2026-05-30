@@ -4,18 +4,17 @@ Distributable [Claude Code](https://claude.com/claude-code) skills for [rote](ht
 
 ## Install
 
-In any Claude Code session (or your terminal), add the marketplace and install the skill:
+This repo is a **dual-format marketplace** — the same repo installs into both Claude Code
+and Codex (the `SKILL.md` is shared; each agent reads its own manifest).
+
+### Claude Code
 
 ```bash
 claude plugin marketplace add modiqo/rote-skills
 claude plugin install rote-setup@rote-skills
 ```
 
-Or as a single copy-paste line:
-
-```bash
-claude plugin marketplace add modiqo/rote-skills && claude plugin install rote-setup@rote-skills
-```
+Or one line: `claude plugin marketplace add modiqo/rote-skills && claude plugin install rote-setup@rote-skills`
 
 Then run it:
 
@@ -23,8 +22,18 @@ Then run it:
 /rote-setup
 ```
 
-The skill is installed at **user scope** by default, so `/rote-setup` is available in every
-project. Use `--scope project` on the install command to scope it to one repo instead.
+Installed at **user scope** by default (available in every project). Use `--scope project` to
+scope it to one repo.
+
+### Codex
+
+```bash
+codex plugin marketplace add modiqo/rote-skills
+```
+
+Then, inside a Codex session, open the **`/plugins`** browser, find **rote-setup**, and
+install it. (Codex installs plugins through the in-session browser rather than a CLI install
+command.) After install, restart Codex and run the wizard.
 
 ## What `/rote-setup` does
 
