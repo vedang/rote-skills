@@ -7,14 +7,17 @@
     "url": "https://getrote.dev"
   },
   "homepage": "https://getrote.dev",
+  "repository": "https://github.com/modiqo/rote-skills",
   "license": "MIT",
   "keywords": ["rote", "onboarding", "setup", "adapters", "mcp"],
+  "skills": "./skills/",
   "interface": {
     "displayName": "rote Setup Wizard",
     "shortDescription": "Guided first-run setup for rote — install, sign in, add adapters, prove it works.",
     "longDescription": "A conversational onboarding wizard for rote. Installs the binary, signs you in (identity-gated), then forks: stop at just the CLI, pull curated powerpack adapters, or build adapters from the 872-API built-in catalog. Wires credentials, connects OAuth, installs the rote agent skill, and ends by running one live flow against your own data. Every branch is a clear choice — it never runs the whole setup silently.",
     "developerName": "Modiqo",
     "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
     "defaultPrompt": ["Set up rote"],
     "websiteURL": "https://getrote.dev"
   }
