@@ -214,7 +214,8 @@ header `Setup`, so they can queue several:
 | **Explore / learn** | Onboarding tree + human-friendly help. | `rote how`, then `rote human` |
 
 Recommend the order **adapters → credentials → OAuth → install skill → explore**, but run
-only what they pick, one at a time, confirming after each.
+only what they pick, one at a time, confirming after each. Once their picks are done, offer
+the **value-proof closer (Step 5)** — run one live flow so setup ends with real output.
 
 ### Step 3a — Install adapters (à la carte, from the live registry)
 
@@ -248,6 +249,26 @@ rote registry adapter pull bootstrap/github --yes
 that into Step 3c. Then reindex once at the end if needed (`rote adapter list` to confirm
 ready state). Adapters that need an API token will surface their env var name; Google
 adapters (gmail/calendar) use OAuth via Step 3d, not a static token.
+
+**Pull each adapter's flows right after installing it.** The adapter pull installs only the
+adapter — its curated flows are separate, and the value-proof closer (Step 5) needs at
+least one flow present. For each adapter just installed, find and pull its flows:
+
+```bash
+rote registry flow find-by-adapter github
+```
+
+That lists `<org>/<name>` flows associated with the adapter (e.g.
+`modiqo/list-top-committers`, `modiqo/retrieve-recent-emails`,
+`modiqo/check-calendar-meetings`). Pull them non-interactively — `--yes` is **required**,
+the pull confirm-prompt has no TTY in an agent shell:
+
+```bash
+rote registry flow pull modiqo/list-top-committers --yes
+```
+
+Pull a couple of the most useful per adapter (don't bulk-pull all of them). These land in
+`~/.rote/flows/<org>/<name>/` and become the menu for Step 5.
 
 ### Step 3b — Install skill provider
 
@@ -358,7 +379,70 @@ rote how
 
 Summarize what's now set up (signed-in email, adapters pulled, credentials wired, skill
 installed) and point at `rote human` for friendly help and `rote how` for the agent
-onboarding tree. Offer to crystallize a first flow or run `rote flow search "<intent>"`.
+onboarding tree. Then offer the value-proof closer (Step 5).
+
+---
+
+## Step 5 — Prove value: run one live flow (optional, recommended)
+
+End on a win — run a real flow against the user's own data so setup ends with *output*,
+not just "complete." Only offer this if at least one credential is wired (a flow with no
+working credential will just error). Ask first (AskUserQuestion, header `Try it`): "Want me
+to run a quick flow to see it work?" — yes / skip.
+
+**1. Find adapter-matched flows.** Use the adapters they installed (and credentialed) so the
+flow can actually run. For each, list its flows:
+
+```bash
+rote registry flow find-by-adapter github
+```
+
+Prefer flows for an adapter whose credential is configured (check `rote powerpack tokens` /
+the Google OAuth result). A read-only flow is the safest first run (e.g.
+`list-top-committers`, `retrieve-recent-emails`, `check-calendar-meetings`) — avoid
+write/create flows (`create-github-issue`) for the value-proof.
+
+**2. Let the user pick one** (AskUserQuestion, header `Flow`), built from the matched list.
+
+**3. Ensure it's pulled.** If not already local from Step 3a, pull it (`--yes` required):
+
+```bash
+rote registry flow pull modiqo/list-top-committers --yes
+```
+
+**4. Read its parameters from frontmatter — don't guess.** Each flow declares params in a
+YAML `parameters:` block in its `main.ts` (name + description + required). Read them:
+
+```bash
+rote flow run list-top-committers --help
+```
+
+(or read the `parameters:` block in `~/.rote/flows/<org>/<name>/main.ts`). For **each**
+declared param, ask the user for a value — use the param's `description` as the hint. Ask in
+prose (AskUserQuestion is for fixed choices; param values are free text), e.g. "This flow
+needs `repository` (Repository in format 'owner/repo') — what should I use?" Offer a sensible
+default where obvious (e.g. `modiqo/rote`).
+
+**5. Preview, then run.** Params are passed as `key=value` pairs. First do a **dry run** to
+show the plan without making calls (DAG flows support `--dry-run`):
+
+```bash
+rote flow run list-top-committers repository=modiqo/rote --dry-run
+```
+
+Then run it for real:
+
+```bash
+rote flow run list-top-committers repository=modiqo/rote
+```
+
+**Workspace note:** `flow run` needs a rote workspace context — if it fails with `not in a
+workspace directory` or `Permission denied (os error 13)`, that's the cwd requirement (the
+same one that bit the `/tmp` verify earlier), **not** a bad credential or flow. Run from a
+real workspace dir (or `rote init` one) rather than a scratch path.
+
+Show the flow's output to the user — that's the payoff. Then suggest the main **rote** skill
+for day-to-day use (`rote flow search "<intent>"` before any direct adapter call).
 
 ---
 
