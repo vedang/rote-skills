@@ -4,7 +4,9 @@ description: >
   Create a rote adapter for any API — dry-run-first. Discovers the spec (built-in catalog →
   web search → local file), analyzes it without committing (`rote adapter new <id> <spec>
   --dry-run`), then pre-fills auth, base-url, and toolset choices from the analysis — asking
-  you only where it's genuinely ambiguous. Use when the user says "add an adapter", "connect
+  you only where it's genuinely ambiguous. When auth is ambiguous or low-confidence, researches
+  the provider's docs to recommend a scheme and produce setup steps (API key / OAuth2). Use
+  when the user says "add an adapter", "connect
   to <API>", "create a stripe/notion/datadog adapter", "build an adapter from this OpenAPI
   spec", "/rote-add-adapter". Never creates from a discovered spec without a clean dry-run
   first. Hands off to rote-adapter-config for tuning afterward.
@@ -102,22 +104,98 @@ user wants to.
 
 ---
 
-## Stage 3 — Auth (ask only the ambiguous part)
+## Stage 3 — Auth (resolve, don't punt)
 
-Drive from `auth` + `auth_scoring` — don't ask the user to pick blind:
+Drive from `auth` + `auth_scoring`. Pick a branch from two fields — `has_ambiguity` and
+`recommended.confidence` — then **resolve ambiguity by reading the provider's own docs**, not
+by handing the user a blind multiple-choice:
 
-- `auth.type == "none"` → no auth; skip.
-- **Unambiguous** (`auth_scoring.has_ambiguity == false` and `recommended.confidence` high,
-  ~≥0.8) → state it and proceed, pre-filling the token env var from `auth.token_env` /
-  `key_env`. e.g. "Detected bearer auth (0.95 confidence, from the spec). I'll use
-  `STRIPE_TOKEN` — sound right?"
-- **Ambiguous** (`has_ambiguity` true, or confidence low) → surface the candidates from
-  `auth_scoring.all_schemes` with their confidence/detail and ask the user to confirm, noting
-  "the API docs are the tiebreaker."
-- **`per_operation`** → note the `schemes` and `default_scheme`; you can create with the
-  default now and enable other schemes later via **rote-adapter-config** (`auth scheme`).
+```
+auth.type == "none"                                          → skip, no auth
+has_ambiguity == false  AND  recommended.confidence >= 0.8   → CONFIRM (no research)
+has_ambiguity == false  AND  recommended.confidence  < 0.8   → RESEARCH-LITE (verify the lone default)
+has_ambiguity == true                                        → RESEARCH-FULL (disambiguate + setup)
+auth.type == "per_operation"                                 → RESEARCH-FULL scoped to default_scheme
+```
 
-The token **value** is a secret — see Stage 5 for the masked handoff. Never paste it in chat.
+Low confidence is itself a trigger — a single-scheme guess at 0.5 (common for GraphQL specs:
+`detail` says "no directives found") is rote *guessing*, so verify it before the user pastes a
+token, not after the probe 401s.
+
+- **CONFIRM** → state the scheme and proceed, pre-filling the token env var from
+  `auth.token_env` / `key_env`. e.g. "Detected bearer auth (0.95 confidence, from the spec).
+  I'll use `STRIPE_TOKEN` — sound right?"
+- **RESEARCH-LITE / RESEARCH-FULL** → run the **Auth research sub-routine** below, then present
+  a *researched recommendation with setup steps inline* (not a blind menu).
+- **`per_operation`** → research the `default_scheme`; you can create with it now and enable
+  other `schemes` later via **rote-adapter-config** (`auth scheme`).
+
+### Auth research sub-routine (read-only, pre-create)
+
+Runs between Stage 1 (dry-run) and Stage 5 (create). Creates nothing, touches no secrets — it
+only sharpens *which* `config-json` you assemble and *what instructions* the user gets.
+
+1. **Derive search terms from context (never memory):** provider = `spec.title` / adapter id;
+   candidate schemes = `auth_scoring.all_schemes[].auth_type.type`. Query templates:
+   - `"<provider> API authentication" (api key OR oauth OR bearer)`
+   - `"<provider> create API key"` / `"<provider> oauth2 client credentials"`
+   - Prefer the provider's own docs domain (developer.x.com, docs.x.com) over blogs.
+
+2. **Fetch the top authoritative hit** and extract a structured profile **per candidate scheme**:
+   ```
+   { scheme: bearer | api_key_header | api_key_query | oauth2_authorization_code |
+             oauth2_client_credentials | basic,
+     header_format: "Authorization: Bearer {token}" | "Authorization: {token}" |
+                    "X-Api-Key: {token}" | ...,
+     token_env:    <suggested env var>,
+     how_to_obtain: [ ordered steps ],
+     doc_url:      <source>,
+     caveats:      [ "personal keys omit Bearer prefix", "key scoped per-workspace", ... ] }
+   ```
+
+3. **Reconcile research against the dry-run** — provider docs win over the dry-run guess, but
+   cite `doc_url` for every claim:
+   - **Confirms** the recommended scheme → proceed with it, now carrying the correct
+     `header_format` + setup steps.
+   - **Contradicts** it (dry-run guessed bearer, docs say `X-Api-Key`) → present both via
+     `AskUserQuestion`, lead with the doc-backed one, cite the source.
+   - **Inconclusive** → fall back to asking the user (today's behavior), but with whatever
+     partial setup info was found.
+
+### Present a researched recommendation, not a blind menu
+
+Use `AskUserQuestion`. Lead with the doc-backed scheme; put the setup steps in the option
+description so the user can act without leaving the flow.
+
+**API-key shape:**
+```
+Recommended: API key in header  (developer.linear.app)
+  Header:  Authorization: <key>     ← raw, no "Bearer " prefix
+  Get one: linear.app/settings/api → "Create key" → Personal API key
+  Env var: LINEAR_API_TOKEN
+[ Use this ]  [ Use OAuth2 instead ]  [ Paste a different scheme ]
+```
+
+**OAuth2 shape** (the case people get stuck on — surface what they must register up front):
+```
+Recommended: OAuth2 authorization_code  (provider docs URL)
+  Need: client_id, client_secret, redirect_uri, scopes [...]
+  Register the app: <console URL from docs>
+  rote runs: new-from-mcp / OAuth-DCR opens a browser
+[ Walk me through OAuth setup ]  [ Use a static token if supported ]
+```
+
+### Guardrails
+
+- **Read-only and pre-create.** Research never creates an adapter, never asks for or echoes a
+  token value. It only changes the config-json and the instructions.
+- **Docs are authoritative over the dry-run guess**, but every claim cites `doc_url`. The
+  dry-run's `detail` ("no directives found") is the signal that rote is guessing — trust docs
+  more there.
+- **The token value is a secret** — see Stage 5 for the masked handoff. Research produces
+  *how to obtain* it and the *header format*, never the value.
+- **The probe is still the final gate.** Research raises confidence and yields correct setup,
+  but Stage 6's `<id>_probe` is what actually proves auth works.
 
 ---
 
@@ -185,6 +263,11 @@ Show it's ready (tools/toolsets/auth). Offer to:
   ```
 - **Tune it** — invoke **rote-adapter-config** for base-url, auth schemes, sensitivity, etc.
 
+**Closing line** (only on a clean create + green probe): land one dry one-liner keyed to this
+run's `total_tools` — the shared convention and rules live in [INDEX.md](../../INDEX.md).
+e.g. "512 tools talking straight to the provider's API — no metered middleman quietly billing
+you per call." Skip it if the run was rocky.
+
 ---
 
 ## Notes
@@ -194,3 +277,13 @@ Show it's ready (tools/toolsets/auth). Offer to:
   most catalog specs analyze cleanly.
 - After a successful create, suggest the main **rote** skill for day-to-day use
   (`rote flow search "<intent>"` before any direct adapter call).
+
+---
+
+## Related onboard skills
+
+Part of the **rote-onboard** sequence ([INDEX.md](../../INDEX.md) is the full map):
+- **Next:** `/rote-onboard:rote-adapter-config` — tune the adapter you just made (auth, base
+  URL, write guard, sensitivity).
+- **First-run / setup:** `/rote-onboard:rote-setup` · **Keep current:**
+  `/rote-onboard:rote-update`

@@ -583,3 +583,17 @@ for day-to-day use (`rote flow search "<intent>"` before any direct adapter call
   from the user.
 - After a successful first run, suggest the main **rote** skill takes over for day-to-day
   use (`rote flow search` before any direct adapter call).
+
+---
+
+## Closing line + related skills
+
+**Closing line** (only after a clean first run): land one dry one-liner keyed to the live flow
+that just proved value — shared convention and rules in [INDEX.md](../../INDEX.md). e.g. "And
+that flow ran straight against the provider's API — no proxy in the middle quietly metering you
+per call. Welcome to rote." Skip it if any step errored.
+
+**Related onboard skills** (this is the front door; [INDEX.md](../../INDEX.md) is the full map):
+- **Build more adapters:** `/rote-onboard:rote-adapter-create`
+- **Tune one:** `/rote-onboard:rote-adapter-config` · **Keep current:**
+  `/rote-onboard:rote-update`

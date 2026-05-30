@@ -72,3 +72,17 @@ updated skills.
   extension, follow its guidance — it may defer to that installer rather than self-replacing.
 - The binary and the skills version independently; updating one doesn't update the other —
   that's why this skill does both.
+
+---
+
+## Closing line + related skills
+
+**Closing line** (only after a clean update of both layers): one dry one-liner keyed to the
+version just landed on — still a local binary hitting providers directly, no middleman proxy to
+keep paying as it ages. Shared convention and rules in [INDEX.md](../../INDEX.md). Skip it if
+`self-update` errored or deferred to a package manager. e.g. "Updated to {version} — your
+adapters still hit the real APIs directly, no proxy clipping a fee per call. Carry on."
+
+**Related onboard skills** ([INDEX.md](../../INDEX.md) is the full map):
+- **First-run:** `/rote-onboard:rote-setup` · **New adapter:**
+  `/rote-onboard:rote-adapter-create` · **Tune one:** `/rote-onboard:rote-adapter-config`

@@ -92,14 +92,21 @@ codex plugin marketplace upgrade rote-skills
 
 The `rote-onboard` plugin bundles four skills (one install pulls them all). They sit alongside
 the day-to-day `rote` skill — `rote` is for *using* rote; these are for *setting up and
-managing* it.
+managing* it. They're a **sequence**, not a grab-bag: each one ends by naming the next logical
+step, so the path becomes muscle memory. See
+[`plugins/rote-onboard/INDEX.md`](plugins/rote-onboard/INDEX.md) for the full map — order, when
+to reach for which, and how they chain.
 
 | Skill | Claude Code | Codex | What it does |
 |---|---|---|---|
-| `rote-setup` | `/rote-setup` | `$rote-setup` | First-run setup: install → sign in → fork (stop / powerpack / build an adapter) → prove it works. Delegates adapter work to the skills below. |
-| `rote-adapter-create` | `/rote-adapter-create` | `$rote-adapter-create` | Dry-run-first adapter creation from the catalog, a web-found spec, or a local file. Analyzes the spec, then pre-fills auth + toolsets from the analysis. |
+| `rote-setup` | `/rote-setup` | `$rote-setup` | First-run setup: install → sign in → fork (stop / powerpack / build an adapter) → prove it works. The front door; delegates adapter work to the skills below. |
+| `rote-adapter-create` | `/rote-adapter-create` | `$rote-adapter-create` | Dry-run-first adapter creation from the catalog, a web-found spec, or a local file. Analyzes the spec, then pre-fills auth + toolsets — and when auth is ambiguous, researches the provider's docs to recommend a scheme with inline setup steps (API key / OAuth2). |
 | `rote-adapter-config` | `/rote-adapter-config` | `$rote-adapter-config` | Tune an existing adapter — auth, base-url, write guard, sensitivity, capability index, re-auth, GraphQL field filter, policies, subagent. |
 | `rote-update` | `/rote-update` | `$rote-update` | Update the rote binary and the skills together. |
+
+Each skill closes a clean run with a dry one-liner keyed to that run's facts — a small,
+honest reminder that rote talks straight to the provider's API, with no metered middleman
+proxy in the path. The shared rules for that live in the INDEX above.
 
 ## License
 

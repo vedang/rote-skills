@@ -153,3 +153,16 @@ rote adapter bump <id> [--minor|--major]
 3. **Apply** the verified command.
 4. **Re-show** the affected state so the user sees the effect.
 5. Return to the menu, or exit.
+
+---
+
+## Closing line + related skills
+
+**Closing line** (optional, on a clean exit): one dry one-liner keyed to whatever was just
+tuned — still the provider's own API, still no proxy taking a cut per call. Shared convention
+and rules in [INDEX.md](../../INDEX.md). Keep it lower-key than setup or create — config is
+housekeeping, so don't force it; skip it if a step errored.
+
+**Related onboard skills** ([INDEX.md](../../INDEX.md) is the full map):
+- **New adapter:** `/rote-onboard:rote-adapter-create` · **First-run:**
+  `/rote-onboard:rote-setup` · **Keep current:** `/rote-onboard:rote-update`
