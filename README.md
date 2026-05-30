@@ -33,11 +33,11 @@ A guided, interactive wizard that takes you from zero to a working rote install:
 1. **Installs rote if missing** — CLI one-liner (`curl -fsSL https://getrote.dev/install | bash`)
    or a VS Code-family editor extension (VS Code Marketplace / Open VSX for Cursor &
    Antigravity), detecting which editors you actually have.
-2. **Forks on how far to go** — stop at just the CLI, pull curated **powerpack** adapters
-   (needs sign-in), or **build adapters from the 872-API built-in catalog** (`rote adapter
-   catalog search` → `rote adapter new`, no login required).
-3. **Signs you in** (when needed) — detects whether you already have an account, then signs
-   in via Google or GitHub, or branches to request-an-invite / claim-an-invite-code.
+2. **Signs you in** — every experience is identity-gated, so sign-in always runs (Google or
+   GitHub; branches to request-an-invite / claim-an-invite-code if you don't have an account).
+3. **Forks on how far to go** — stop at just the CLI, pull curated **powerpack** adapters,
+   or **build adapters from the 872-API built-in catalog** (`rote adapter catalog search` →
+   `rote adapter new`). All branches run under your signed-in identity.
 4. **Menu-driven setup** — install adapters à la carte from the live registry (with their
    flows), wire credentials, connect Google OAuth, install the agent skill, and explore —
    you pick what runs.
