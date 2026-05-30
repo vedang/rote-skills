@@ -27,20 +27,50 @@ and surface the next choice.
 All commands are non-destructive to the filesystem; they touch `~/.rote/` config and the
 registry.
 
+**Self-contained — never rely on memory or prior session state.** This skill must work on a
+fresh machine for a user the agent has never seen. Do **not** consult project memory,
+recalled facts, CLAUDE.md, or any "rote is active here" assumption to decide whether rote is
+installed, where it lives, or whether the user is logged in. Determine every fact by running
+the probe commands in the steps below and branching on their **actual output** — memory may
+be stale, machine-specific, or simply wrong. If a recalled note contradicts a live probe,
+the live probe wins.
+
 ---
 
 ## Step -1 — Is rote installed? (pre-flight gate)
 
-Before anything else, confirm the binary exists:
+Determine this **only** from live probes — never from memory or a "rote is active here"
+note. Two probes, in order:
 
-```bash
-command -v rote
-```
+1. Is `rote` on PATH?
+   ```bash
+   command -v rote
+   ```
+   If it prints a path, rote is installed and invocable as `rote`. **Use that name for all
+   later commands.**
 
-- **Prints a path** (e.g. `/Users/.../.local/bin/rote`) → installed. Go to **Step 0
-  (login)** — every experience is identity-gated, so sign-in always runs before the fork.
-- **Empty / exit code 1** → not installed. Offer the install choice via AskUserQuestion,
+2. If step 1 is empty (exit 1), it may be installed but **not on this shell's PATH** (the
+   installer commonly drops it in `~/.local/bin`, which a non-interactive shell often omits).
+   Probe the known install locations directly before concluding it's missing:
+   ```bash
+   ls -la "$HOME/.local/bin/rote" "$HOME/.cargo/bin/rote" 2>/dev/null
+   ```
+   - If either path exists → rote **is** installed, just off PATH. Use the **absolute path**
+     (e.g. `$HOME/.local/bin/rote`) for every later `rote` command in this run, and tell the
+     user their shell PATH is missing `~/.local/bin` (they can add it / open a new terminal).
+   - If neither exists **and** `command -v rote` was empty → genuinely **not installed**.
+
+Branch on the combined result:
+
+- **Installed** (on PATH or found at a known path) → go to **Step 0 (login)**. Every
+  experience is identity-gated, so sign-in always runs before the fork.
+- **Not installed** (both probes empty) → offer the install choice via AskUserQuestion,
   header `Install`:
+
+**Command convention for the rest of this run:** every step below writes `rote …`. If Step
+-1 resolved rote on PATH, run it verbatim. If it resolved only at an absolute path (off
+PATH), substitute that path for the leading `rote` in **every** command (e.g.
+`$HOME/.local/bin/rote whoami`). Pick this once at Step -1 and stay consistent.
 
   - **CLI one-liner** (recommended) — installs the `rote` command directly. **Always run
     it non-interactively** — the installer prompts ("Install Deno runtime? [Y/n]") and a
@@ -541,8 +571,11 @@ for day-to-day use (`rote flow search "<intent>"` before any direct adapter call
 - **Detect before offering.** Confirm the rote binary (`command -v rote`) before any rote
   command, and detect installed editors (`command -v code|cursor|antigravity`) before
   offering the extension path. Never present an install target that isn't there.
-- **Detect, don't assume.** Once rote is present, start from `rote whoami`. Branch on real
-  output.
+- **Detect, don't assume — and never from memory.** Every fact (installed? where? logged
+  in?) comes from a live probe in this run, not from recalled notes, CLAUDE.md, or a "rote is
+  active here" assumption. A stale memory must never short-circuit a probe; if memory and a
+  live probe disagree, the probe wins. Once rote is present, start from `rote whoami` and
+  branch on its real output.
 - **Lead with the happy path.** Sign-in first; invite/claim flows are the fallback.
 - **Browser steps are async.** After `rote login --provider ...` or `rote oauth setup
   google`, tell the user to finish in the browser, then re-run `rote whoami` /
