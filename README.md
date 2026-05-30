@@ -31,9 +31,16 @@ scope it to one repo.
 codex plugin marketplace add modiqo/rote-skills
 ```
 
-Then, inside a Codex session, open the **`/plugins`** browser, find **rote-setup**, and
-install it. (Codex installs plugins through the in-session browser rather than a CLI install
-command.) After install, restart Codex and run the wizard.
+Then, inside a Codex session, open the **`/plugins`** browser, find **rote Setup Wizard**,
+and install it. (Codex installs plugins through the in-session browser rather than a CLI
+install command.) Once installed, invoke the skill with:
+
+```
+$rote-setup
+```
+
+> **Invocation differs by agent:** Claude Code uses the slash command **`/rote-setup`**;
+> Codex uses the skill syntax **`$rote-setup`** (Codex skills are invoked with `$`, not `/`).
 
 ## What `/rote-setup` does
 
