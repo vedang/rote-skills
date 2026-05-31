@@ -1,6 +1,6 @@
 {
   "name": "rote-onboard",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "rote skills — first-run setup, adapter create (dry-run-first), adapter config, registry (share + usage), and update.",
   "author": {
     "name": "Modiqo",

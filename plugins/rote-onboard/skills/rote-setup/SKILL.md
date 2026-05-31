@@ -215,7 +215,8 @@ Ask up front (per design): **"Do you already have a rote account?"**
 Present with AskUserQuestion, header `Account`:
 - **Yes, sign me in** — proceed to **Step 2 (sign-in)**.
 - **I have an invite code** — proceed to **Step 1a (claim code)**.
-- **No, I need an invite** — proceed to **Step 1b (request invite)**.
+- **No, I need an invite** — proceed to **Step 1b** — I'll **request one for you here** via
+  `rote waitlist` (no need to leave for a website).
 
 ### Step 1a — Claim an invite code
 
@@ -229,18 +230,28 @@ rote join <invite-code>
 On success → continue to **Step 2 (sign-in)** with the email tied to that invite.
 On failure → show the error verbatim, offer to retry or fall back to **Step 1b**.
 
-### Step 1b — Request an invite
+### Step 1b — Request an invite (do it here, don't punt to the website)
 
-rote is invite-gated. Point the user at the signup/invite request flow:
+rote is invite-gated, but the request runs **in this experience** — there's a CLI command for
+it. Don't just send the user to a URL.
 
-> rote access is invite-based. Request one at **https://getrote.dev** (or ask whoever
-> invited you for a code). Once you have a code, come back and run `/rote-setup` again —
-> I'll pick up at the claim-code step.
+1. **Ask for their email** (prose — it's free text, and it's where the invite code will be sent):
+   "What email should the invite go to?"
+2. **Request the invite** by passing the email as the argument (pass it explicitly — a bare
+   `rote waitlist` prompts on stdin, which has no TTY in an agent shell and would hang):
+   ```bash
+   rote waitlist user@example.com
+   ```
+   On success it prints "Waitlist request sent" and notes the invite code arrives by email
+   (typically within 24–48 hours). The request goes to the rote team; the code comes back to
+   the email given.
+3. **Tell them what's next:** when the code arrives, re-run `/rote-setup` — it'll pick up at the
+   claim-code step (`rote join <code>` → sign in → adapters).
 
-Confirm whether they want to (a) open the link / request now and pause, or (b) already
-have a code after all (loop back to **Step 1a**). Do not fabricate an invite URL beyond
-the canonical `getrote.dev`; if unsure, tell them to check the email/Slack where they
-first heard about rote.
+If `rote waitlist` errors (e.g. email service unreachable), fall back to the manual path:
+request at **https://getrote.dev** or email **ask@modiqo.ai** directly. Also offer the loop-back
+if they realize they **already have a code** → **Step 1a**. Don't fabricate an invite URL beyond
+the canonical `getrote.dev`.
 
 ---
 
