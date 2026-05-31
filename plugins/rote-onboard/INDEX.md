@@ -128,6 +128,41 @@ There are two execution modes and you must pick by the flow's frontmatter:
 When unsure which mode, prefer the `cd … && rote deno run` form — it works for both and matches
 how the flows are authored.
 
+## Primitive intros — explain the *what* and *why*, the first time
+
+A first-timer meets three rote primitives during onboarding — **adapter**, **flow**, **hub** —
+and the skills used to just *use* them without ever saying what they are or why they're worth
+it. **The first time a primitive appears in a run, give its What/Value beat before the
+AskUserQuestion** (~3–4 lines — the "what" with a bit of dry humor, then the concrete value).
+On repeat appearances, skip it — they've got it.
+
+These are the canonical beats. Keep the voice consistent (dry, confident, no hype, no invented
+numbers); adapt the wording to the moment but keep the *claims* exactly these.
+
+### Adapter — introduced at the "build an adapter" fork (setup), and in `rote-adapter-create`
+
+> **What:** An adapter lets your agent talk MCP to any API directly — no gateway, no SDK to
+> wire, no tool-call middleman taking a cut. rote reads the API's own spec and exposes it as
+> tools, locally.
+> **Value:** No per-tool-call fees, no extra infrastructure to run (it's all local), and no
+> new attack surface — your traffic goes straight to the provider, not through someone else's box.
+
+### Flow — introduced at the value-proof closer (setup Step 5), and when a flow is first saved
+
+> **What:** A flow is a workflow your agent builds and runs itself — no workflow-vendor
+> subscription, no LLM-memory provider. As you interact, rote watches what worked and what
+> failed and *crystallizes* the successes into reusable interaction memories, recalled next time.
+> **Value:** Determinism and token savings — a proven flow replays instead of re-reasoning.
+> Outcome-maxxing, not token-maxxing.
+
+### Hub — introduced in `rote-registry` before the first push
+
+> **What:** When you build a flow or adapter that works, the hub lets your team and community
+> reuse it — the way a teacher's lesson saves every student from rediscovering it. Shared
+> artifacts become collective intelligence.
+> **Value:** Token savings across the whole org and community, with the same determinism — one
+> person's proven flow is everyone's, no re-derivation.
+
 ## Shared closing-line convention (dry humor)
 
 All skills end a **clean** run on one dry one-liner, keyed to what actually just happened.

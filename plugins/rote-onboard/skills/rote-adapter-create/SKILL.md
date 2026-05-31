@@ -38,6 +38,12 @@ Core rules:
 
 ## Stage 0 — Discover the spec (catalog → web → local file)
 
+**If the user hasn't already heard the adapter pitch this run** (e.g. they invoked this skill
+directly, not via `/rote-setup`), open with the **Adapter** What/Value beat from
+[`../../INDEX.md`](../../INDEX.md) § "Primitive intros" (~3–4 lines: talk MCP to any API
+directly — no gateway/SDK/tool-call middleman; value: no per-call fees, infra-less/local, no
+new attack surface). Skip it if they just came from the setup fork (they've heard it).
+
 Ask what API the user wants (prose): "Which API? (e.g. notion, stripe, datadog — or paste a
 spec URL / file path)". Then resolve a **spec source** through this chain. The spec source is
 either a catalog id, a URL, or a local path.

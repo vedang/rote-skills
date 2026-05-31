@@ -64,6 +64,13 @@ rote registry whoami --verbose
 
 ## Stage 1 — Which orgs, and is the artifact already there?
 
+**This is where the "hub" concept first appears — give the hub What/Value beat before asking
+where to push.** Deliver the **Hub** beat from [`../../INDEX.md`](../../INDEX.md) § "Primitive
+intros" (~3–4 lines: a working flow/adapter shared so the team and community reuse it — the way
+a teacher's lesson saves every student rediscovering it; shared artifacts become collective
+intelligence. Value: token savings across the org and community, with the same determinism).
+*Then* proceed.
+
 List the orgs the user belongs to (the push targets):
 ```bash
 rote registry org list --json

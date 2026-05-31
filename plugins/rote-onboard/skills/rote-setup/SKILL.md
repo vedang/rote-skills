@@ -276,7 +276,13 @@ provider.
 
 The binary is installed **and the user is signed in** (login in Steps 0–2 always runs first —
 every experience is identity-gated, so usage is attributable). Now ask how far they want to
-take setup. AskUserQuestion, header `Scope`:
+take setup.
+
+**This fork is where "adapter" first appears — give the adapter What/Value beat before the
+question** (the user may not know what an adapter buys them). Deliver the **Adapter** beat from
+[`../../INDEX.md`](../../INDEX.md) § "Primitive intros" (~3–4 lines: what it is, with a bit of
+dry humor, then the value — no per-tool-call fees, infra-less/local, no new attack surface),
+*then* ask. AskUserQuestion, header `Scope`:
 
 - **Just the CLI — stop here** — confirm rote is installed and signed in, print `rote how`
   for next steps, and **end the wizard cleanly**. No adapters. They can re-run `/rote-setup`
@@ -514,8 +520,14 @@ onboarding tree. Then offer the value-proof closer (Step 5).
 
 End on a win — run a real flow against the user's own data so setup ends with *output*,
 not just "complete." Only offer this if at least one credential is wired (a flow with no
-working credential will just error). Ask first (AskUserQuestion, header `Try it`): "Want me
-to run a quick flow to see it work?" — yes / skip.
+working credential will just error).
+
+**This is where "flow" first appears — give the flow What/Value beat before the question.**
+Deliver the **Flow** beat from [`../../INDEX.md`](../../INDEX.md) § "Primitive intros" (~3–4
+lines: a workflow your agent builds and runs itself — no workflow-vendor subscription, no
+LLM-memory provider; rote crystallizes what worked into recalled interaction memories. Value:
+determinism + token savings — outcome-maxxing, not token-maxxing). *Then* ask (AskUserQuestion,
+header `Try it`): "Want me to run a quick flow to see it work?" — yes / skip.
 
 **Follow [`../../INDEX.md`](../../INDEX.md) § "Running a flow"** — the canonical method. The
 short version, applied here:
