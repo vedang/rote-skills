@@ -20,8 +20,9 @@ at the visibility the user chooses, then **turn the push into collaboration** by
 members and offering invites.
 
 **Follow the shared operating rules in [`../../INDEX.md`](../../INDEX.md) § "Shared operating
-rules"** — on a fresh run, offer the permission allowlist (`Bash(rote:*)` / `Bash(cd:*)` /
-`Bash(rote deno run:*)`) so the user isn't prompted on every step.
+rules"** — on a fresh run, offer the full permissions (both `permissions.allow`
+`Bash(rote:*)`/`Bash(cd:*)` AND `permissions.additionalDirectories` `~/.rote`) so the user
+isn't prompted on every step.
 
 Core rules:
 - **Determine facts from live `rote registry` commands, never from memory.** (If the rote

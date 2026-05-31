@@ -42,12 +42,39 @@ death by a thousand confirmations. **At the very start of any skill, before the 
 command, tell the user to allowlist these** (or do it via the `update-config` skill if
 available):
 
-- `Bash(rote:*)` — all rote commands
-- `Bash(cd:*)` — workspace/flow `cd <dir> && rote …` compounds
-- `Bash(rote deno run:*)` — flow execution via the bundled Deno (`~/.rote/bin/deno`)
+There are **two independent permission layers** — you need both, or you'll still be prompted:
 
-These live in `~/.claude/settings.json` under `permissions.allow`. Offer to add them once;
-don't re-ask. (Codex: the equivalent is its approved-commands / `prefix_rule` config.)
+**(a) Bash-command allowlist** — `permissions.allow`:
+- `Bash(rote:*)` — all rote commands (this already covers `rote deno run …`, so a separate
+  deno rule is redundant; include it only as an explicit teaching aid if you like)
+- `Bash(cd:*)` — the `cd <dir> && rote …` compounds used for workspace/flow execution
+
+**(b) Directory-access allowlist** — `permissions.additionalDirectories` (THIS is the one
+most people miss). The skills `cd` into several paths **under `~/.rote/` — all outside the
+user's project directory**: `~/.rote/rote/workspaces/<name>` (flow runs / probes),
+`~/.rote/flows/<org>/<name>` (deno flow execution), and they read `~/.rote/adapters/…`. Each
+`cd` outside the project triggers a *separate* filesystem prompt ("allow reading from <dir> …")
+that the Bash allowlist does **not** cover. The simplest cover-all is to add the whole
+`~/.rote` tree:
+- **`~/.rote`** — covers workspaces, flows, adapters, tokens — everything the skills touch by
+  path. (Use a narrower `~/.rote/rote/workspaces` + `~/.rote/flows` pair if you want to scope
+  it tighter, but `~/.rote` is the one-entry answer.)
+
+So the complete `~/.claude/settings.json` shape is:
+
+```json
+{
+  "permissions": {
+    "allow": ["Bash(rote:*)", "Bash(cd:*)"],
+    "additionalDirectories": ["~/.rote"]
+  }
+}
+```
+
+Offer to add **both** layers once at the start; don't re-ask. Without `additionalDirectories`,
+every flow run / probe inside a workspace re-prompts even though the Bash rules are present —
+the exact bug seen on a fresh machine. (Codex: the equivalent is its approved-commands /
+sandbox-writable-roots config.)
 
 ### 1b. Resolving the rote binary — narrow probe, NEVER a deep search
 

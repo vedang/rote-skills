@@ -20,8 +20,9 @@ Rules: determine facts from live commands (never memory); secrets never captured
 `$HOME/.local/bin/rote` then `$HOME/.cargo/bin/rote` — never a deep `find`; see INDEX § 1b).
 **Follow the shared
 operating rules in [`../../INDEX.md`](../../INDEX.md) § "Shared operating rules"** — offer the
-permission allowlist (`Bash(rote:*)` / `Bash(cd:*)` / `Bash(rote deno run:*)`) on a fresh run,
-and run **one command per Bash call, strictly sequential — never parallel**.
+full permissions on a fresh run — both `permissions.allow` (`Bash(rote:*)` / `Bash(cd:*)`) and
+`permissions.additionalDirectories` (`~/.rote`) — and run **one command per
+Bash call, strictly sequential — never parallel**.
 
 ---
 

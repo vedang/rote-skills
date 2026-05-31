@@ -28,10 +28,16 @@ and surface the next choice.
 rules"** — permissions, strict step-wise (never parallel), required-state gates, and flow
 execution. They apply to every step here.
 
-**First, clear the permission prompts (issue: every step prompts on a fresh machine).** Before
-the first `rote` command, offer to allowlist `Bash(rote:*)`, `Bash(cd:*)`, and
-`Bash(rote deno run:*)` in `~/.claude/settings.json` (the `update-config` skill can do it).
-Otherwise the user confirms a Bash prompt on every single step.
+**First, clear the permission prompts (issue: every step prompts on a fresh machine).** Two
+layers — set **both** (see INDEX § "Shared operating rules" #1 for the full settings.json):
+- `permissions.allow`: `Bash(rote:*)`, `Bash(cd:*)`
+- `permissions.additionalDirectories`: `~/.rote` — **required** so the `cd ~/.rote/…/<name>
+  && rote …` flow/probe/workspace commands don't trigger a separate "allow reading from <dir>"
+  filesystem prompt (the Bash allowlist alone does NOT cover paths outside the project).
+
+Offer to add both via the `update-config` skill before the first rote command. Otherwise the
+user confirms a prompt on every step — and re-prompts on every workspace command even after
+allowing the Bash rules.
 
 All commands are non-destructive to the filesystem; they touch `~/.rote/` config and the
 registry.
@@ -557,7 +563,9 @@ rote registry flow pull modiqo/list-top-committers --yes
   ```
   Pass the flow's positional args (from the `parameters:` block), e.g.
   `… main.ts modiqo/rote`. `rote deno run` uses `~/.rote/bin/deno`. The `cd && rote deno run`
-  compound is one logical step (covered by the `Bash(cd:*)` / `Bash(rote deno run:*)` allowlist).
+  compound is one logical step. This `cd`s into `~/.rote/flows/…` (outside the project) — the
+  `~/.rote` entry in `permissions.additionalDirectories` (see INDEX #1) covers it without a
+  filesystem prompt.
 
 When unsure which mode, prefer the `cd … && rote deno run --allow-all main.ts` form — it works
 for every flow and matches how they're authored.

@@ -20,8 +20,9 @@ in context and ask the user only the questions the analysis can't answer.
 
 **Follow the shared operating rules in [`../../INDEX.md`](../../INDEX.md) § "Shared operating
 rules"** — permissions allowlist, strict step-wise (never parallel), and required-state gates.
-On a fresh run, first offer to allowlist `Bash(rote:*)` / `Bash(cd:*)` / `Bash(rote deno run:*)`
-so the user isn't prompted on every step.
+On a fresh run, first offer the full permissions — both `permissions.allow` (`Bash(rote:*)` /
+`Bash(cd:*)`) and `permissions.additionalDirectories` (`~/.rote`) — so the user
+isn't prompted on every step.
 
 Core rules:
 - **Never `--yes` create from a discovered spec without a successful `--dry-run` first.** The
