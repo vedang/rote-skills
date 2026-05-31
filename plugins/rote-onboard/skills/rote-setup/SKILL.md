@@ -2,8 +2,10 @@
 name: rote-setup
 description: >
   Guided, interactive first-run setup for rote. Installs the binary, signs the user in via
-  Google/GitHub (every experience is identity-gated; branches to request-an-invite /
-  claim-an-invite-code if needed), then forks: stop at just the CLI, pull curated powerpack
+  Google/GitHub (every experience is identity-gated). If they have no account it requests an
+  invite in-experience (`rote waitlist`) and is **resumable** — the user goes off to other
+  work and re-runs /rote-setup when the code arrives (24–48h), picking up right at the
+  claim-code step. Then forks: stop at just the CLI, pull curated powerpack
   adapters, or build adapters from the 872-API built-in catalog. Then offers a menu of
   remaining onboarding steps (adapters, credentials, OAuth, install skill, explore) and ends
   by running one live flow to prove value. Use when the user says "set up rote", "rote
@@ -201,8 +203,12 @@ rote whoami
 Read the output:
 - `ok: <email>` → **already logged in.** Say "You're signed in as `<email>`." and go to the
   fork (**Step 2.5**).
-- Anything else (error, `not logged in`, empty) → **not logged in.** Go to **Step 1** to
-  sign in. Sign-in is required before the fork — do not offer to skip it.
+- Anything else (error, `not logged in`, empty) → **not logged in.** Go to **Step 1**.
+  **Resume awareness:** if the binary was already installed (Step -1 found it without
+  installing it this run), the user is very likely a **returning waitlister picking up where
+  they left off** — lead Step 1 with claim-code ("Welcome back — did your invite code arrive?")
+  rather than the cold "Do you have an account?" (see "Resuming after an invite request").
+  Either way, sign-in is required before the fork — do not skip it.
 
 Do not assume — branch on the actual output of `rote whoami`.
 
@@ -245,13 +251,45 @@ it. Don't just send the user to a URL.
    On success it prints "Waitlist request sent" and notes the invite code arrives by email
    (typically within 24–48 hours). The request goes to the rote team; the code comes back to
    the email given.
-3. **Tell them what's next:** when the code arrives, re-run `/rote-setup` — it'll pick up at the
-   claim-code step (`rote join <code>` → sign in → adapters).
+3. **Hand off — they can go do other work; you'll resume on arrival.** The wait is real
+   (typically **under 24–48h**), so don't make them sit here. Say, in plain words:
+
+   > Invite requested — the code comes by email, usually within 24–48h. **Go do other work in
+   > the meantime.** When it lands in your inbox, just run **`/rote-setup`** again (or paste the
+   > code and say "I have my invite") and I'll **pick up right where we left off** — straight at
+   > the claim-code step. Nothing's lost: the binary's installed, you're at the invite gate, and
+   > resuming skips everything already done.
+
+   This is the resume contract — see **"Resuming after an invite request"** below for how
+   re-entry detects the right pickup point. No state file is written; the skill re-derives where
+   to resume from live probes each time.
 
 If `rote waitlist` errors (e.g. email service unreachable), fall back to the manual path:
 request at **https://getrote.dev** or email **ask@modiqo.ai** directly. Also offer the loop-back
 if they realize they **already have a code** → **Step 1a**. Don't fabricate an invite URL beyond
 the canonical `getrote.dev`.
+
+### Resuming after an invite request (pick up where we left off)
+
+A user who requested an invite will return — possibly days later, in a fresh session with no
+memory of this run. **Re-derive the resume point from live probes** (the skill keeps no state of
+its own); don't restart from zero or re-explain things already done:
+
+1. The **2×2 pre-flight (Step -1)** already runs first — it'll find the binary **installed** (it
+   was installed before the invite gate), so skip reinstalling. Acknowledge it: "rote's already
+   installed — picking up where we left off."
+2. Then **Step 0** runs `rote whoami`. For a returning waitlister it'll report **not logged in**
+   (they never got past the invite gate). That `installed + not-logged-in` combination IS the
+   resume signal: they're at the invite gate.
+3. **Go straight to the invite question and lead with claim-code** (don't make them re-pick "no
+   account" — they're past that): "Welcome back — did your invite code arrive?"
+   - **Yes, here's the code** → **Step 1a** (`rote join <code>` → sign in → fork). The happy resume.
+   - **Not yet** → they can keep waiting; re-run `/rote-setup` whenever it arrives. Re-confirm
+     `rote waitlist` only if they think the first request didn't go through.
+
+The whole "resume" is just: **install ✓ (skip) → not-logged-in (the gate) → ask for the code →
+claim → continue the normal flow.** No marker file, no special mode — the live state is the
+memory.
 
 ---
 
