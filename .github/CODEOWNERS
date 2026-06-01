@@ -1,0 +1,9 @@
+# Code owners for rote-skills.
+# These owners are requested for review on any PR that touches matching paths.
+# See https://docs.github.com/articles/about-code-owners
+#
+# Note: @modiqo/maintainers must be a team in the modiqo org with write access
+# to this repo for ownership to take effect.
+
+# Default owner for everything in the repo.
+*       @modiqo/maintainers
