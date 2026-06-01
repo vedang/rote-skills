@@ -29,11 +29,12 @@ scope it to one repo.
 
 ```bash
 codex plugin marketplace add modiqo/rote-skills
+codex plugin add rote-onboard@rote-skills
 ```
 
-Then, inside a Codex session, open the **`/plugins`** browser, find **rote Setup Wizard**,
-and install it. (Codex installs plugins through the in-session browser rather than a CLI
-install command.) Once installed, invoke the skill with:
+Or one line: `codex plugin marketplace add modiqo/rote-skills && codex plugin add rote-onboard@rote-skills`
+
+Then, inside a Codex session, invoke the skill with:
 
 ```
 $rote-setup
@@ -82,10 +83,11 @@ to credentials, the agent-skill install, and a live-flow finale.
 claude plugin update rote-onboard@rote-skills
 ```
 
-**Codex:** refresh the marketplace snapshot, then reinstall from the `/plugins` browser:
+**Codex:** refresh the marketplace snapshot, then reinstall:
 
 ```bash
 codex plugin marketplace upgrade rote-skills
+codex plugin add rote-onboard@rote-skills
 ```
 
 ## Skills in this plugin
