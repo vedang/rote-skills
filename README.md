@@ -7,6 +7,14 @@ Distributable [Claude Code](https://claude.com/claude-code) skills for [rote](ht
 This repo is a **dual-format marketplace** — the same repo installs into both Claude Code
 and Codex (the `SKILL.md` is shared; each agent reads its own manifest).
 
+### Pi
+
+```bash
+pi install git:github.com/modiqo/rote-skills
+```
+
+For local testing, run `pi install /absolute/path/to/rote-skills`.
+
 ### Claude Code
 
 ```bash

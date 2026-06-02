@@ -1,0 +1,10 @@
+{
+  "name": "rote-skills",
+  "version": "0.1.0",
+  "description": "Pi package for rote onboarding skills.",
+  "license": "MIT",
+  "keywords": ["pi-package"],
+  "pi": {
+    "skills": ["plugins/rote-onboard/skills"]
+  }
+}
